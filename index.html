@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>診断士用 クライアント案件管理</title>
+    <!-- フォントとアイコン -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            /* 指定カラーコード */
+            --brand-orange: #E77B25;
+            --brand-purple: #DBB3E7;
+            --brand-blue: #42B4FF;
+
+            /* システムカラー割り当て */
+            --primary: var(--brand-orange);      /* メイン：元気なオレンジ */
+            --secondary: var(--brand-blue);      /* サブ：爽やかなブルー */
+            --accent: var(--brand-purple);       /* アクセント：優しいパープル */
+            
+            --text-main: #444;                   /* 文字色：少しグレー寄りの黒で柔らかく */
+            --text-sub: #888;
+            
+            --bg: #fcfdfd;                       /* 背景：ほぼ白に近い清潔な色 */
+            --sidebar-bg: #ffffff;
+            --card-bg: #ffffff;
+
+            --sidebar-width: 380px;
+
+            /* ステータス色（少しパステル寄りに調整） */
+            --st-hearing: #95a5a6;
+            --st-preparing: #f39c12;
+            --st-applied: #3498db;
+            --st-accepted: #2ecc71;
+            --st-rejected: #e74c3c;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', Meiryo, sans-serif;
+            background-color: var(--bg);
+            background-image: radial-gradient(#DBB3E7 0.5px, transparent 0.5px), radial-gradient(#DBB3E7 0.5px, var(--bg) 0.5px);
+            background-size: 20px 20px;
+            background-position: 0 0, 10px 10px;
+            /* 背景にうっすらドットを入れて明るさを演出（不透明度で調整） */
+            background-blend-mode: multiply;
+            color: var(--text-main);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* 画面切り替え用 */
+        .view-section {
+            height: 100%;
+            display: none;
+            flex-direction: column;
+        }
+        .view-section.active { display: flex; }
+
+        /* --- ホーム画面（クライアント一覧） --- */
+        .home-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            width: 100%;
+            padding: 40px 20px;
+            height: 100%;
+            overflow-y: auto;
+        }
+
+        .home-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 25px 35px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(231, 123, 37, 0.05); /* オレンジの影 */
+            border-left: 8px solid var(--brand-orange);
+            backdrop-filter: blur(5px);
+        }
+
+        .home-header h1 {
+            color: var(--text-main);
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .home-header h1 i {
+            color: var(--brand-orange);
+            background: #fff0e0;
+            padding: 10px;
+            border-radius: 50%;
+            font-size: 20px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .client-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 25px;
+        }
+
+        .client-card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            border: 1px solid rgba(0,0,0,0.05);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .client-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 4px;
+            background: linear-gradient(90deg, var(--brand-orange), var(--brand-purple));
+            opacity: 0.5;
+            transition: opacity 0.3s;
+        }
+
+        .client-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(66, 180, 255, 0.15); /* ブルーの影 */
+            border-color: var(--brand-blue);
+        }
+        
+        .client-card:hover::before { opacity: 1; }
+
+        .client-card h3 {
+            font-size: 18px;
+            color: var(--text-main);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .client-card h3 i { color: var(--brand-blue); opacity: 0.7; }
+
+        .client-industry {
+            font-size: 13px; color: var(--text-sub); margin-bottom: 12px;
+        }
+
+        .client-tags-preview {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 15px;
+            min-height: 24px;
+        }
+        
+        .mini-tag {
+            font-size: 11px;
+            background: #f0f7ff;
+            color: var(--brand-blue);
+            padding: 3px 8px;
+            border-radius: 12px;
+            border: 1px solid rgba(66, 180, 255, 0.2);
+        }
+
+        .client-stats {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
+            font-size: 13px;
+            color: var(--text-sub);
+            background: #fcfcfc;
+            padding: 10px 15px;
+            border-radius: 10px;
+            border: 1px solid #f0f0f0;
+        }
+
+        /* --- 詳細画面（商談モード） --- */
+        .detail-layout {
+            display: flex;
+            height: 100%;
+        }
+
+        /* 左サイドバー：基本情報・メモ */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--sidebar-bg);
+            border-right: 1px solid #eee;
+            display: flex;
+            flex-direction: column;
+            padding: 30px;
+            box-shadow: 5px 0 20px rgba(0,0,0,0.02);
+            z-index: 10;
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-sub);
+            text-decoration: none;
+            margin-bottom: 30px;
+            font-weight: bold;
+            cursor: pointer;
+            width: fit-content;
+            padding: 8px 12px;
+            border-radius: 8px;
+            transition: 0.2s;
+        }
+        .back-btn:hover { color: var(--brand-orange); background: #fff5eb; }
+
+        .client-profile { margin-bottom: 30px; border-bottom: 2px solid #f5f5f5; padding-bottom: 25px; }
+        .client-profile h2 { font-size: 22px; color: var(--text-main); margin-bottom: 8px; }
+        .client-profile p { color: var(--text-sub); font-size: 14px; }
+
+        /* ヒアリングタグエリア */
+        .tag-section {
+            margin-bottom: 30px;
+        }
+        .section-label { font-size: 12px; font-weight: bold; color: var(--brand-orange); margin-bottom: 10px; letter-spacing: 0.05em; text-transform: uppercase;}
+        
+        .tag-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        
+        .check-tag {
+            font-size: 12px;
+            padding: 6px 14px;
+            border: 1px solid #eee;
+            border-radius: 20px;
+            cursor: pointer;
+            color: #666;
+            background: white;
+            transition: all 0.2s;
+            user-select: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+        .check-tag:hover { background: #fafafa; transform: translateY(-1px); }
+        .check-tag.active {
+            background: #fff5eb; /* 薄いオレンジ背景 */
+            border-color: var(--brand-orange);
+            color: var(--brand-orange);
+            font-weight: bold;
+            box-shadow: 0 2px 8px rgba(231, 123, 37, 0.2);
+        }
+
+        /* メモエリア */
+        .memo-section {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .memo-toolbar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+            overflow-x: auto;
+            padding-bottom: 5px;
+            align-items: center; /* 縦位置揃え */
+        }
+        
+        /* 日付入力のスタイル */
+        .memo-date-input {
+            padding: 5px 8px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 12px;
+            color: #555;
+            background: #fff;
+            font-family: inherit;
+        }
+        .memo-date-input:focus { outline: none; border-color: var(--brand-blue); }
+
+        .template-btn {
+            font-size: 11px;
+            padding: 6px 12px;
+            background: #f0f7ff; /* 薄いブルー */
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            white-space: nowrap;
+            color: var(--brand-blue);
+            font-weight: bold;
+            transition: 0.2s;
+        }
+        .template-btn:hover { background: var(--brand-blue); color: white; }
+        
+        /* 日付挿入ボタン特別色 */
+        .template-btn.btn-date {
+            background: #fff5eb;
+            color: var(--brand-orange);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .template-btn.btn-date:hover {
+            background: var(--brand-orange);
+            color: white;
+        }
+
+        .memo-label-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        #clientMemo {
+            flex-grow: 1;
+            width: 100%;
+            resize: none;
+            padding: 20px;
+            border: 2px solid #f0f0f0;
+            border-radius: 12px;
+            font-family: inherit;
+            line-height: 1.7;
+            background: #fff;
+            font-size: 14px;
+            color: #555;
+            transition: 0.3s;
+        }
+        #clientMemo:focus { 
+            outline: none; 
+            border-color: var(--brand-purple); 
+            box-shadow: 0 0 0 4px rgba(219, 179, 231, 0.2);
+        }
+
+        /* 右メイン：案件リスト */
+        .main-content {
+            flex-grow: 1;
+            padding: 40px 50px;
+            overflow-y: auto;
+            background: transparent; /* bodyの背景を表示 */
+        }
+
+        .main-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+        .main-header h3 { color: var(--text-main); font-size: 20px; }
+        .main-header h3 i { color: var(--brand-orange); margin-right: 8px; }
+
+        .project-list {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .project-card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+            border-left: 6px solid #ccc;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s;
+        }
+        .project-card:hover { 
+            transform: translateX(5px); 
+            box-shadow: 0 8px 25px rgba(0,0,0,0.06);
+        }
+
+        /* ステータス別のボーダー色 */
+        .border-hearing { border-left-color: var(--st-hearing); }
+        .border-preparing { border-left-color: var(--st-preparing); }
+        .border-applied { border-left-color: var(--st-applied); }
+        .border-accepted { border-left-color: var(--st-accepted); }
+        .border-rejected { border-left-color: var(--st-rejected); }
+
+        .project-info h4 { font-size: 18px; margin-bottom: 8px; color: var(--text-main); font-weight: bold; }
+        .project-meta { font-size: 13px; color: var(--text-sub); display: flex; gap: 20px; }
+        .project-meta i { color: var(--brand-blue); width: 16px; }
+        
+        .project-status {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: bold;
+            color: white;
+            letter-spacing: 0.05em;
+        }
+        .bg-hearing { background: var(--st-hearing); }
+        .bg-preparing { background: var(--st-preparing); }
+        .bg-applied { background: var(--st-applied); }
+        .bg-accepted { background: var(--st-accepted); }
+        .bg-rejected { background: var(--st-rejected); }
+
+        /* 共通UIパーツ */
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 50px; /* 丸みのあるボタン */
+            cursor: pointer;
+            font-weight: bold;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: 0.3s;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        .btn-primary { 
+            background: linear-gradient(135deg, var(--brand-orange), #ff9f43);
+            color: white; 
+        }
+        .btn-primary:hover { 
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(231, 123, 37, 0.3);
+        }
+        .btn-ghost { background: transparent; color: var(--text-sub); border: 1px solid #ddd; box-shadow: none; }
+        .btn-ghost:hover { background: #f0f0f0; }
+
+        .icon-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #ccc;
+            padding: 8px;
+            font-size: 16px;
+            transition: 0.2s;
+            border-radius: 50%;
+        }
+        .icon-btn:hover { color: var(--brand-orange); background: #fff5eb; }
+        .icon-btn.delete:hover { color: var(--st-rejected); background: #fff0f0; }
+
+        /* モーダル */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(44, 62, 80, 0.4); /* 背景を少し青みがかったグレーに */
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal.active { display: flex; }
+        .modal-content {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            width: 500px;
+            max-width: 90%;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.1);
+            border-top: 6px solid var(--brand-orange);
+        }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: bold; font-size: 13px; color: var(--text-main); }
+        .form-group input, .form-group select {
+            width: 100%; padding: 12px; border: 2px solid #f0f0f0; border-radius: 10px;
+            font-size: 14px; transition: 0.3s;
+        }
+        .form-group input:focus, .form-group select:focus {
+            border-color: var(--brand-blue);
+            outline: none;
+        }
+
+        /* フッター */
+        .app-footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            padding: 8px 0;
+            font-size: 11px;
+            color: #aaa;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(3px);
+            z-index: 100;
+            border-top: 1px solid rgba(0,0,0,0.03);
+            pointer-events: none; /* クリックを邪魔しないように */
+        }
+    </style>
+</head>
+<body>
+
+    <!-- === HOME VIEW: クライアント一覧 === -->
+    <div id="view-home" class="view-section active">
+        <div class="home-container">
+            <header class="home-header">
+                <div>
+                    <h1><i class="fas fa-users"></i> クライアント管理</h1>
+                    <p style="color:#888; margin-top:5px; margin-left:5px;">現在管理中のクライアント一覧</p>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-ghost" onclick="openDataModal()" title="データのバックアップと復元">
+                        <i class="fas fa-database"></i> データ管理
+                    </button>
+                    <button class="btn btn-primary" onclick="openClientModal()">
+                        <i class="fas fa-plus"></i> 新規クライアント
+                    </button>
+                </div>
+            </header>
+
+            <div id="clientList" class="client-grid">
+                <!-- クライアントカードがここに生成されます -->
+            </div>
+            
+            <div style="margin-top: 40px; text-align: center; color: #aaa; font-size: 12px;">
+                <p>※ この画面で会社を選択すると、詳細画面へ移動します</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- === DETAIL VIEW: 詳細・商談画面 === -->
+    <div id="view-detail" class="view-section">
+        <div class="detail-layout">
+            <!-- 左サイド: 商談メモ・顧客情報 -->
+            <aside class="sidebar">
+                <div class="back-btn" onclick="goHome()">
+                    <i class="fas fa-arrow-left"></i> 一覧に戻る
+                </div>
+                
+                <div class="client-profile">
+                    <h2 id="detailClientName">会社名</h2>
+                    <p id="detailIndustry">業種・備考</p>
+                </div>
+
+                <!-- ヒアリングタグ -->
+                <div class="tag-section">
+                    <div class="section-label"><i class="fas fa-check-square"></i> クイック・ヒアリング</div>
+                    <div class="tag-container" id="tagContainer">
+                        <!-- JSで生成 -->
+                    </div>
+                </div>
+
+                <div class="memo-section">
+                    <div class="memo-label-row">
+                        <div class="section-label"><i class="fas fa-sticky-note"></i> 商談メモ</div>
+                        <span id="memoStatus" style="font-size:11px; color:var(--st-accepted); display:none;">保存しました</span>
+                    </div>
+                    
+                    <!-- テンプレートボタンと日付入力 -->
+                    <div class="memo-toolbar">
+                        <!-- 日付入力エリア -->
+                        <div style="display:flex; align-items:center; gap:5px; padding-right:8px; margin-right:8px; border-right:1px solid #eee;">
+                            <input type="date" id="memoDate" class="memo-date-input">
+                            <button class="template-btn btn-date" onclick="insertDate()" title="選択した日付を挿入">
+                                <i class="fas fa-calendar-plus"></i> 挿入
+                            </button>
+                        </div>
+
+                        <button class="template-btn" onclick="insertTemplate('現状')">＋現状</button>
+                        <button class="template-btn" onclick="insertTemplate('提案')">＋提案</button>
+                        <button class="template-btn" onclick="insertTemplate('Next')">＋Next</button>
+                    </div>
+
+                    <textarea id="clientMemo" placeholder="日付を選択して挿入ボタンを押すと、時系列に記録できます..."></textarea>
+                </div>
+            </aside>
+
+            <!-- 右メイン: 案件リスト -->
+            <main class="main-content">
+                <div class="main-header">
+                    <h3><i class="fas fa-file-invoice-dollar"></i> 提案・申請中の案件</h3>
+                    <button class="btn btn-primary" onclick="openProjectModal()">
+                        <i class="fas fa-plus"></i> 案件を追加
+                    </button>
+                </div>
+
+                <div id="projectList" class="project-list">
+                    <!-- 案件カードがここに生成されます -->
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- モーダル: クライアント登録 -->
+    <div id="clientModal" class="modal">
+        <div class="modal-content">
+            <h3 style="margin-bottom:20px; color:var(--text-main);">新規クライアント登録</h3>
+            <form onsubmit="addClient(event)">
+                <div class="form-group">
+                    <label>会社名 *</label>
+                    <input type="text" id="newClientName" required placeholder="例: 株式会社〇〇">
+                </div>
+                <div class="form-group">
+                    <label>業種・備考</label>
+                    <input type="text" id="newClientIndustry" placeholder="例: 金属加工業 / 3月決算">
+                </div>
+                <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:30px;">
+                    <button type="button" class="btn btn-ghost" onclick="closeModals()">キャンセル</button>
+                    <button type="submit" class="btn btn-primary">登録</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- モーダル: 案件登録 -->
+    <div id="projectModal" class="modal">
+        <div class="modal-content">
+            <h3 style="margin-bottom:20px; color:var(--text-main);">補助金案件の追加</h3>
+            <form onsubmit="addProject(event)">
+                <div class="form-group">
+                    <label>補助金名 *</label>
+                    <input type="text" id="newProjectName" required placeholder="例: ものづくり補助金 省力化枠">
+                </div>
+                <div class="form-group">
+                    <label>ステータス</label>
+                    <select id="newProjectStatus">
+                        <option value="hearing">ヒアリング・提案</option>
+                        <option value="preparing">申請準備中</option>
+                        <option value="applied">申請完了（審査待）</option>
+                        <option value="accepted">採択決定</option>
+                        <option value="rejected">不採択</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>投資予定額</label>
+                    <input type="number" id="newProjectAmount" placeholder="例: 10000000">
+                </div>
+                <div class="form-group">
+                    <label>申請期限</label>
+                    <input type="date" id="newProjectDeadline">
+                </div>
+                <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:30px;">
+                    <button type="button" class="btn btn-ghost" onclick="closeModals()">キャンセル</button>
+                    <button type="submit" class="btn btn-primary">追加</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- モーダル: データ管理 -->
+    <div id="dataModal" class="modal">
+        <div class="modal-content">
+            <h3 style="margin-bottom:20px; color:var(--text-main);"><i class="fas fa-database"></i> データのバックアップ・復元</h3>
+            <p style="font-size:13px; color:var(--text-sub); margin-bottom:20px; line-height:1.6;">
+                現在のデータをファイルとして保存したり、保存したファイルからデータを復元できます。<br>
+                <span style="color:var(--st-rejected);">※ 復元を行うと、現在のデータは上書きされます。</span>
+            </p>
+            
+            <div style="display:flex; flex-direction:column; gap:15px;">
+                <button class="btn btn-primary" onclick="exportData()" style="justify-content:center;">
+                    <i class="fas fa-download"></i> バックアップを保存 (JSON)
+                </button>
+                
+                <div style="position:relative; margin-top:10px; padding-top:15px; border-top:1px dashed #ddd;">
+                    <input type="file" id="importFile" accept=".json" style="display:none;" onchange="importData(this)">
+                    <button class="btn btn-ghost" onclick="document.getElementById('importFile').click()" style="width:100%; justify-content:center; border:2px dashed #ddd; color:var(--text-sub);">
+                        <i class="fas fa-upload"></i> バックアップから復元
+                    </button>
+                </div>
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; margin-top:25px;">
+                <button type="button" class="btn btn-ghost" onclick="closeModals()">閉じる</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- フッター -->
+    <footer class="app-footer">
+        テスト版（ベータ版） © 2026 SPC
+    </footer>
+
+    <script>
+        // --- 設定・マスタデータ ---
+        // 診断士がチェックすべきキーワードリスト
+        const HEARING_TAGS = [
+            '設備投資', 'IT導入', '販路開拓', 
+            '賃上げ', '事業承継', '新事業', 
+            '人材不足', '資金調達', 'EC構築',
+            '海外展開'
+        ];
+
+        // --- データ管理 ---
+        let clients = [
+            {
+                id: 1,
+                name: '株式会社テックソリューション',
+                industry: 'IT・ソフトウェア / 9月決算',
+                tags: ['賃上げ', 'IT導入', '新事業'],
+                memo: '【2024/02/01(木)】\n■現状・課題\n・社長は新しい技術に非常に積極的。\n\n■提案内容\n・次回は「IT導入補助金」とセットで「セキュリティ対策」も提案する。\n\n',
+                projects: [
+                    { id: 101, name: 'IT導入補助金2024 デジタル化枠', status: 'preparing', amount: 3500000, deadline: '2024-05-20' },
+                    { id: 102, name: '小規模事業者持続化補助金', status: 'hearing', amount: 1500000, deadline: '2024-08-10' }
+                ]
+            },
+            {
+                id: 2,
+                name: '山田製作所',
+                industry: '金属加工業 / 3月決算',
+                tags: ['設備投資', '資金調達'],
+                memo: '【2024/01/25(木)】\n■現状・課題\n・工場長との面談が必要。\n・現状、5軸加工機の導入を検討中だが、資金調達が課題。\n\n■Next Action\n・メインバンクへの根回し状況を確認すること。',
+                projects: [
+                    { id: 201, name: 'ものづくり補助金 第18回', status: 'hearing', amount: 15000000, deadline: '2024-06-15' }
+                ]
+            },
+            {
+                id: 3,
+                name: '鈴木ベーカリー',
+                industry: '飲食・小売 / 12月決算',
+                tags: ['販路開拓', 'EC構築'],
+                memo: '【2023/12/10(日)】\n■現状・課題\n・既存店舗の売り上げは安定。\n・ECサイトでの全国販売を強化したい。\n\n■Next Action\n・持続化補助金の実績報告書を作成中。領収書回収。\n',
+                projects: [
+                    { id: 301, name: '小規模事業者持続化補助金', status: 'accepted', amount: 750000, deadline: '2024-03-14' }
+                ]
+            },
+            {
+                id: 4,
+                name: '株式会社グリーンロジ',
+                industry: '運送・倉庫 / 6月決算',
+                tags: ['新事業', '設備投資'],
+                memo: '【2024/01/15(月)】\n■現状・課題\n・倉庫業から食品加工への転換を図る。\n・金融機関からの融資は内諾済み。\n\n■提案内容\n・事業再構築補助金（成長枠）への申請。\n',
+                projects: [
+                    { id: 401, name: '事業再構築補助金 成長枠', status: 'applied', amount: 45000000, deadline: '2024-04-30' }
+                ]
+            },
+            {
+                id: 5,
+                name: '田中板金工業',
+                industry: '建設・板金 / 5月決算',
+                tags: ['事業承継', '人材不足'],
+                memo: '【2024/02/03(土)】\n■現状・課題\n・先代からの事業承継タイミング。\n・若手職人の採用が難航している。\n\n■Next Action\n・後継者の経営ビジョン策定支援。\n',
+                projects: [
+                    { id: 501, name: '事業承継・引継ぎ補助金', status: 'hearing', amount: 6000000, deadline: '2024-07-10' }
+                ]
+            },
+            {
+                id: 6,
+                name: 'エステサロンBelle',
+                industry: '美容・サービス / 1月決算',
+                tags: ['IT導入', '販路開拓'],
+                memo: '【2023/11/20(月)】\n■現状・課題\n・予約管理が電話中心で非効率。\n・前回は加点不足で不採択。\n\n■提案内容\n・賃上げ加点を追加して再申請を提案中。\n',
+                projects: [
+                    { id: 601, name: 'IT導入補助金 セキュリティ枠', status: 'rejected', amount: 1000000, deadline: '2024-02-15' }
+                ]
+            }
+        ];
+
+        let currentClientId = null;
+        let memoTimeout = null;
+
+        // 初期化
+        document.addEventListener('DOMContentLoaded', () => {
+            loadData();
+            renderClientList();
+            
+            // カレンダーのデフォルトを今日に設定
+            if(document.getElementById('memoDate')) {
+                document.getElementById('memoDate').valueAsDate = new Date();
+            }
+        });
+
+        // データの保存・読込
+        function loadData() {
+            const saved = localStorage.getItem('consultant_clients_manager_v2');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                if(parsed.length <= 2) {
+                    // 既存データが少ない場合はデモデータを優先
+                } else {
+                    clients = parsed;
+                }
+            }
+        }
+
+        function saveData() {
+            localStorage.setItem('consultant_clients_manager_v2', JSON.stringify(clients));
+        }
+
+        // --- データ管理機能 ---
+        function openDataModal() {
+            document.getElementById('dataModal').classList.add('active');
+        }
+
+        // エクスポート
+        function exportData() {
+            const dataStr = JSON.stringify(clients, null, 2);
+            const blob = new Blob([dataStr], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            const date = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+            a.href = url;
+            a.download = `subsidy_clients_backup_${date}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // インポート
+        function importData(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            if (!confirm('現在のデータがバックアップファイルの内容で上書きされます。\nよろしいですか？')) {
+                input.value = ''; // リセット
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const json = JSON.parse(e.target.result);
+                    if (Array.isArray(json)) {
+                        clients = json;
+                        saveData();
+                        renderClientList();
+                        closeModals();
+                        alert('✅ データを復元しました');
+                    } else {
+                        alert('❌ データ形式が正しくありません');
+                    }
+                } catch (err) {
+                    alert('❌ ファイルの読み込みに失敗しました');
+                }
+            };
+            reader.readAsText(file);
+            input.value = ''; // リセット
+        }
+
+        // --- 画面遷移 ---
+        function goHome() {
+            document.getElementById('view-detail').classList.remove('active');
+            document.getElementById('view-home').classList.add('active');
+            currentClientId = null;
+            renderClientList();
+        }
+
+        function goDetail(clientId) {
+            currentClientId = clientId;
+            const client = clients.find(c => c.id === clientId);
+            
+            // 詳細画面にデータをセット
+            document.getElementById('detailClientName').textContent = client.name;
+            document.getElementById('detailIndustry').textContent = client.industry;
+            document.getElementById('clientMemo').value = client.memo || '';
+            
+            // カレンダーを今日にリセット
+            document.getElementById('memoDate').valueAsDate = new Date();
+            
+            renderTagSection(client);
+            renderProjectList(client);
+
+            document.getElementById('view-home').classList.remove('active');
+            document.getElementById('view-detail').classList.add('active');
+        }
+
+        // --- ホーム画面描画 ---
+        function renderClientList() {
+            const container = document.getElementById('clientList');
+            container.innerHTML = clients.map(client => {
+                const projectCount = client.projects.length;
+                const activeCount = client.projects.filter(p => !['accepted', 'rejected'].includes(p.status)).length;
+                
+                // タグのプレビュー生成（最大3つまで）
+                const tags = client.tags || [];
+                const tagsHtml = tags.slice(0, 4).map(t => `<span class="mini-tag">${t}</span>`).join('');
+                
+                return `
+                <div class="client-card" onclick="goDetail(${client.id})">
+                    <h3><i class="fas fa-building"></i> ${client.name}</h3>
+                    <div class="client-industry">${client.industry}</div>
+                    <div class="client-tags-preview">${tagsHtml}</div>
+                    <div class="client-stats">
+                        <span><i class="fas fa-file-alt"></i> 案件数: <b>${projectCount}</b></span>
+                        <span style="color:${activeCount > 0 ? 'var(--brand-orange)' : '#aaa'}">
+                            <i class="fas fa-sync-alt"></i> 進行中: <b>${activeCount}</b>
+                        </span>
+                    </div>
+                </div>
+                `;
+            }).join('');
+        }
+
+        // --- 詳細画面：タグエリア描画 ---
+        function renderTagSection(client) {
+            const container = document.getElementById('tagContainer');
+            const currentTags = client.tags || [];
+
+            container.innerHTML = HEARING_TAGS.map(tag => {
+                const isActive = currentTags.includes(tag);
+                return `<div class="check-tag ${isActive ? 'active' : ''}" 
+                             onclick="toggleTag('${tag}')">${tag}</div>`;
+            }).join('');
+        }
+
+        function toggleTag(tagName) {
+            const client = clients.find(c => c.id === currentClientId);
+            if (!client) return;
+            
+            if (!client.tags) client.tags = [];
+
+            if (client.tags.includes(tagName)) {
+                client.tags = client.tags.filter(t => t !== tagName);
+            } else {
+                client.tags.push(tagName);
+            }
+            
+            saveData();
+            renderTagSection(client); // 再描画
+        }
+
+        // --- 詳細画面：メモ機能 ---
+        document.getElementById('clientMemo').addEventListener('input', (e) => {
+            const val = e.target.value;
+            const statusEl = document.getElementById('memoStatus');
+            statusEl.style.display = 'none';
+
+            clearTimeout(memoTimeout);
+            memoTimeout = setTimeout(() => {
+                const client = clients.find(c => c.id === currentClientId);
+                if (client) {
+                    client.memo = val;
+                    saveData();
+                    statusEl.style.display = 'inline';
+                    statusEl.textContent = '保存しました';
+                    setTimeout(() => { statusEl.style.display = 'none'; }, 2000);
+                }
+            }, 1000);
+        });
+
+        // 日付挿入
+        function insertDate() {
+            const dateVal = document.getElementById('memoDate').value;
+            if(!dateVal) return;
+            
+            // 曜日計算
+            const d = new Date(dateVal);
+            const weekDays = ['日', '月', '火', '水', '木', '金', '土'];
+            const dayStr = weekDays[d.getDay()];
+            
+            // YYYY/MM/DD形式
+            const yyyy = d.getFullYear();
+            const mm = (d.getMonth() + 1).toString().padStart(2, '0');
+            const dd = d.getDate().toString().padStart(2, '0');
+            
+            const insertStr = `【${yyyy}/${mm}/${dd}(${dayStr})】\n`;
+            insertToTextarea(insertStr);
+        }
+
+        // テンプレート挿入
+        function insertTemplate(type) {
+            let textToInsert = "";
+
+            if (type === '現状') textToInsert = "■現状・課題\n・\n\n";
+            if (type === '提案') textToInsert = "■提案内容\n・\n\n";
+            if (type === 'Next') textToInsert = "■Next Action\n・\n\n";
+            if (type === '決定') textToInsert = "■決定事項\n・\n\n";
+
+            insertToTextarea(textToInsert);
+        }
+
+        // テキストエリアへの挿入共通処理
+        function insertToTextarea(textToInsert) {
+            const textarea = document.getElementById('clientMemo');
+            const startPos = textarea.selectionStart;
+            const endPos = textarea.selectionEnd;
+            const text = textarea.value;
+            
+            // 文末以外かつ直前が改行でないなら改行を入れる
+            if (startPos > 0 && text[startPos-1] !== '\n') {
+                textToInsert = "\n" + textToInsert;
+            }
+
+            textarea.value = text.substring(0, startPos) + textToInsert + text.substring(endPos);
+            
+            // カーソル位置を調整
+            textarea.selectionStart = textarea.selectionEnd = startPos + textToInsert.length;
+            textarea.focus();
+
+            // 保存をトリガー
+            textarea.dispatchEvent(new Event('input'));
+        }
+
+        // --- 詳細画面：案件リスト描画 ---
+        const statusMap = {
+            'hearing': { label: '提案中', class: 'bg-hearing', border: 'border-hearing' },
+            'preparing': { label: '準備中', class: 'bg-preparing', border: 'border-preparing' },
+            'applied': { label: '申請済', class: 'bg-applied', border: 'border-applied' },
+            'accepted': { label: '採択', class: 'bg-accepted', border: 'border-accepted' },
+            'rejected': { label: '不採択', class: 'bg-rejected', border: 'border-rejected' }
+        };
+
+        function renderProjectList(client) {
+            const container = document.getElementById('projectList');
+            if (!client.projects || client.projects.length === 0) {
+                container.innerHTML = `<div style="text-align:center; padding:30px; color:#aaa;">案件がありません。<br>「案件を追加」ボタンから登録してください。</div>`;
+                return;
+            }
+
+            container.innerHTML = client.projects.map(p => {
+                const st = statusMap[p.status] || statusMap.hearing;
+                const amt = p.amount ? parseInt(p.amount).toLocaleString() + '円' : '-';
+                
+                return `
+                <div class="project-card ${st.border}">
+                    <div class="project-info">
+                        <div style="margin-bottom:8px;">
+                            <span class="project-status ${st.class}">${st.label}</span>
+                        </div>
+                        <h4>${p.name}</h4>
+                        <div class="project-meta">
+                            <span><i class="fas fa-yen-sign"></i> 投資額: ${amt}</span>
+                            <span><i class="far fa-calendar-alt"></i> 期限: ${p.deadline || '未定'}</span>
+                        </div>
+                    </div>
+                    <div>
+                        <button class="icon-btn delete" onclick="deleteProject(${p.id}, event)" title="削除">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </div>
+                </div>
+                `;
+            }).join('');
+        }
+
+        // --- クライアント追加 ---
+        function openClientModal() {
+            document.getElementById('newClientName').value = '';
+            document.getElementById('newClientIndustry').value = '';
+            document.getElementById('clientModal').classList.add('active');
+        }
+
+        function addClient(e) {
+            e.preventDefault();
+            const name = document.getElementById('newClientName').value;
+            const industry = document.getElementById('newClientIndustry').value;
+            
+            const newClient = {
+                id: Date.now(),
+                name: name,
+                industry: industry,
+                tags: [],
+                memo: '',
+                projects: []
+            };
+
+            clients.unshift(newClient);
+            saveData();
+            renderClientList();
+            closeModals();
+        }
+
+        // --- 案件追加 ---
+        function openProjectModal() {
+            // デフォルト日付
+            document.getElementById('newProjectDeadline').valueAsDate = new Date();
+            document.getElementById('newProjectName').value = '';
+            document.getElementById('newProjectAmount').value = '';
+            document.getElementById('projectModal').classList.add('active');
+        }
+
+        function addProject(e) {
+            e.preventDefault();
+            const client = clients.find(c => c.id === currentClientId);
+            if (!client) return;
+
+            const newProject = {
+                id: Date.now(),
+                name: document.getElementById('newProjectName').value,
+                status: document.getElementById('newProjectStatus').value,
+                amount: document.getElementById('newProjectAmount').value,
+                deadline: document.getElementById('newProjectDeadline').value
+            };
+
+            if(!client.projects) client.projects = [];
+            client.projects.unshift(newProject);
+            saveData();
+            renderProjectList(client);
+            closeModals();
+        }
+
+        function deleteProject(projectId, event) {
+            event.stopPropagation();
+            if(!confirm('この案件を削除してもよろしいですか？')) return;
+
+            const client = clients.find(c => c.id === currentClientId);
+            if (client) {
+                client.projects = client.projects.filter(p => p.id !== projectId);
+                saveData();
+                renderProjectList(client);
+            }
+        }
+
+        // 共通
+        function closeModals() {
+            document.querySelectorAll('.modal').forEach(m => m.classList.remove('active'));
+        }
+        
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                closeModals();
+            }
+        }
+    </script>
+</body>
+</html>
