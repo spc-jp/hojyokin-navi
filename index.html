@@ -3,1319 +3,1389 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>診断士用 クライアント案件管理</title>
-    <!-- フォントとアイコン -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <title>補助金マッチングナビ｜あなたの会社に使える補助金を探す</title>
+    
+    <!-- Google Fonts: Noto Sans JP -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Noto Sans JP"', 'sans-serif'],
+                    },
+                    colors: {
+                        app: {
+                            bg: '#F7F9FC',
+                            main: '#1A3A5C',
+                            accent: '#2EB8A0',
+                            positive: '#27AE60',
+                            warning: '#F5A623',
+                            tag: '#EAF4FF',
+                            text: '#2C2C2C',
+                        }
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.4s ease-out forwards',
+                        'slide-up': 'slideUp 0.5s ease-out forwards',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        slideUp: {
+                            '0%': { opacity: '0', transform: 'translateY(20px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
     <style>
-        :root {
-            /* 指定カラーコード */
-            --brand-orange: #E77B25;
-            --brand-purple: #DBB3E7;
-            --brand-blue: #42B4FF;
-
-            /* システムカラー割り当て */
-            --primary: var(--brand-orange);      /* メイン：元気なオレンジ */
-            --secondary: var(--brand-blue);      /* サブ：爽やかなブルー */
-            --accent: var(--brand-purple);       /* アクセント：優しいパープル */
-            
-            --text-main: #444;                   /* 文字色：少しグレー寄りの黒で柔らかく */
-            --text-sub: #888;
-            
-            --bg: #fcfdfd;                       /* 背景：ほぼ白に近い清潔な色 */
-            --sidebar-bg: #ffffff;
-            --card-bg: #ffffff;
-
-            --sidebar-width: 400px; /* 情報が増えたので少し広げました */
-
-            /* ステータス色（少しパステル寄りに調整） */
-            --st-hearing: #95a5a6;
-            --st-preparing: #f39c12;
-            --st-applied: #3498db;
-            --st-accepted: #2ecc71;
-            --st-rejected: #e74c3c;
-        }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        /* Custom Styles & Overrides */
+        body { color: #2C2C2C; }
         
-        body {
-            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', Meiryo, sans-serif;
-            background-color: var(--bg);
-            background-image: radial-gradient(#DBB3E7 0.5px, transparent 0.5px), radial-gradient(#DBB3E7 0.5px, var(--bg) 0.5px);
-            background-size: 20px 20px;
-            background-position: 0 0, 10px 10px;
-            /* 背景にうっすらドットを入れて明るさを演出（不透明度で調整） */
-            background-blend-mode: multiply;
-            color: var(--text-main);
-            height: 100vh;
-            overflow: hidden;
-        }
+        /* Hide scrollbar for clean horizontal scrolling if needed */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-        /* 画面切り替え用 */
-        .view-section {
-            height: 100%;
-            display: none;
-            flex-direction: column;
-        }
-        .view-section.active { display: flex; }
-
-        /* --- ホーム画面（クライアント一覧） --- */
-        .home-container {
-            max-width: 1000px;
-            margin: 0 auto;
-            width: 100%;
-            padding: 40px 20px;
-            height: 100%;
-            overflow-y: auto;
-        }
-
-        .home-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-            background: rgba(255, 255, 255, 0.95);
-            padding: 25px 35px;
-            border-radius: 16px;
-            box-shadow: 0 10px 25px rgba(231, 123, 37, 0.05); /* オレンジの影 */
-            border-left: 8px solid var(--brand-orange);
-            backdrop-filter: blur(5px);
-        }
-
-        .home-header h1 {
-            color: var(--text-main);
-            font-size: 24px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .home-header h1 i {
-            color: var(--brand-orange);
-            background: #fff0e0;
-            padding: 10px;
-            border-radius: 50%;
-            font-size: 20px;
-        }
-
-        .header-actions {
-            display: flex;
-            gap: 10px;
-        }
-
-        .client-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 25px;
-        }
-
-        .client-card {
-            background: var(--card-bg);
-            border-radius: 16px;
-            padding: 25px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+        /* Custom Radio/Checkbox Card Styles */
+        .selectable-card {
+            transition: all 0.2s ease-in-out;
             cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-            border: 1px solid rgba(0,0,0,0.05);
-            position: relative;
-            overflow: hidden;
+            border: 2px solid transparent;
         }
-
-        .client-card::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 4px;
-            background: linear-gradient(90deg, var(--brand-orange), var(--brand-purple));
-            opacity: 0.5;
-            transition: opacity 0.3s;
-        }
-
-        .client-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 30px rgba(66, 180, 255, 0.15); /* ブルーの影 */
-            border-color: var(--brand-blue);
-        }
-        
-        .client-card:hover::before { opacity: 1; }
-
-        .client-card h3 {
-            font-size: 18px;
-            color: var(--text-main);
-            margin-bottom: 8px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .client-card h3 i { color: var(--brand-blue); opacity: 0.7; }
-
-        .client-industry {
-            font-size: 13px; color: var(--text-sub); margin-bottom: 12px;
-        }
-
-        .client-tags-preview {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-            margin-bottom: 15px;
-            min-height: 24px;
-        }
-        
-        .mini-tag {
-            font-size: 11px;
-            background: #f0f7ff;
-            color: var(--brand-blue);
-            padding: 3px 8px;
-            border-radius: 12px;
-            border: 1px solid rgba(66, 180, 255, 0.2);
-        }
-
-        .client-stats {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 15px;
-            font-size: 13px;
-            color: var(--text-sub);
-            background: #fcfcfc;
-            padding: 10px 15px;
-            border-radius: 10px;
-            border: 1px solid #f0f0f0;
-        }
-
-        /* --- 詳細画面（商談モード） --- */
-        .detail-layout {
-            display: flex;
-            height: 100%;
-        }
-
-        /* 左サイドバー：基本情報・メモ */
-        .sidebar {
-            width: var(--sidebar-width);
-            background: var(--sidebar-bg);
-            border-right: 1px solid #eee;
-            display: flex;
-            flex-direction: column;
-            padding: 30px;
-            box-shadow: 5px 0 20px rgba(0,0,0,0.02);
-            z-index: 10;
-            overflow-y: auto; /* コンテンツが増えたのでスクロール可能に */
-        }
-
-        .back-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            color: var(--text-sub);
-            text-decoration: none;
-            margin-bottom: 20px;
-            font-weight: bold;
-            cursor: pointer;
-            width: fit-content;
-            padding: 8px 12px;
-            border-radius: 8px;
-            transition: 0.2s;
-        }
-        .back-btn:hover { color: var(--brand-orange); background: #fff5eb; }
-
-        .client-profile { 
-            margin-bottom: 30px; 
-            border-bottom: 2px solid #f5f5f5; 
-            padding-bottom: 25px; 
-            position: relative;
-        }
-        .client-profile-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-        }
-        .client-profile h2 { font-size: 22px; color: var(--text-main); margin-bottom: 8px; line-height: 1.3; }
-        .client-profile p { color: var(--text-sub); font-size: 14px; margin-bottom: 4px; }
-        
-        .client-detail-table {
-            width: 100%;
-            font-size: 13px;
-            margin-top: 15px;
-            border-collapse: collapse;
-        }
-        .client-detail-table th {
-            text-align: left;
-            color: var(--text-sub);
-            font-weight: normal;
-            padding: 4px 0;
-            width: 80px;
-        }
-        .client-detail-table td {
-            text-align: right;
-            color: var(--text-main);
-            font-weight: bold;
-            padding: 4px 0;
-        }
-
-        /* ヒアリングタグエリア */
-        .tag-section {
-            margin-bottom: 30px;
-        }
-        .section-label { font-size: 12px; font-weight: bold; color: var(--brand-orange); margin-bottom: 10px; letter-spacing: 0.05em; text-transform: uppercase;}
-        
-        .tag-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-        
-        .check-tag {
-            font-size: 12px;
-            padding: 6px 14px;
-            border: 1px solid #eee;
-            border-radius: 20px;
-            cursor: pointer;
-            color: #666;
-            background: white;
-            transition: all 0.2s;
-            user-select: none;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-        }
-        .check-tag:hover { background: #fafafa; transform: translateY(-1px); }
-        .check-tag.active {
-            background: #fff5eb; /* 薄いオレンジ背景 */
-            border-color: var(--brand-orange);
-            color: var(--brand-orange);
-            font-weight: bold;
-            box-shadow: 0 2px 8px rgba(231, 123, 37, 0.2);
-        }
-
-        /* メモエリア */
-        .memo-section {
-            flex-grow: 1;
-            display: flex;
-            flex-direction: column;
-            min-height: 300px;
-        }
-        
-        .memo-toolbar {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 10px;
-            overflow-x: auto;
-            padding-bottom: 5px;
-            align-items: center; /* 縦位置揃え */
-        }
-        
-        /* 日付入力のスタイル */
-        .memo-date-input {
-            padding: 5px 8px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            font-size: 12px;
-            color: #555;
-            background: #fff;
-            font-family: inherit;
-        }
-        .memo-date-input:focus { outline: none; border-color: var(--brand-blue); }
-
-        .template-btn {
-            font-size: 11px;
-            padding: 6px 12px;
-            background: #f0f7ff; /* 薄いブルー */
-            border: none;
-            border-radius: 12px;
-            cursor: pointer;
-            white-space: nowrap;
-            color: var(--brand-blue);
-            font-weight: bold;
-            transition: 0.2s;
-        }
-        .template-btn:hover { background: var(--brand-blue); color: white; }
-        
-        /* 日付挿入ボタン特別色 */
-        .template-btn.btn-date {
-            background: #fff5eb;
-            color: var(--brand-orange);
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-        .template-btn.btn-date:hover {
-            background: var(--brand-orange);
-            color: white;
-        }
-
-        .memo-label-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-        }
-        
-        #clientMemo {
-            flex-grow: 1;
-            width: 100%;
-            resize: none;
-            padding: 20px;
-            border: 2px solid #f0f0f0;
-            border-radius: 12px;
-            font-family: inherit;
-            line-height: 1.7;
-            background: #fff;
-            font-size: 14px;
-            color: #555;
-            transition: 0.3s;
-        }
-        #clientMemo:focus { 
-            outline: none; 
-            border-color: var(--brand-purple); 
-            box-shadow: 0 0 0 4px rgba(219, 179, 231, 0.2);
-        }
-
-        /* 右メイン：案件リスト */
-        .main-content {
-            flex-grow: 1;
-            padding: 40px 50px;
-            overflow-y: auto;
-            background: transparent; /* bodyの背景を表示 */
-        }
-
-        .main-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 25px;
-        }
-        .main-header h3 { color: var(--text-main); font-size: 20px; }
-        .main-header h3 i { color: var(--brand-orange); margin-right: 8px; }
-
-        .project-list {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        .project-card {
-            background: white;
-            border-radius: 12px;
-            padding: 25px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.03);
-            border-left: 6px solid #ccc;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            transition: all 0.3s;
-        }
-        .project-card:hover { 
-            transform: translateX(5px); 
-            box-shadow: 0 8px 25px rgba(0,0,0,0.06);
-        }
-
-        /* ステータス別のボーダー色 */
-        .border-hearing { border-left-color: var(--st-hearing); }
-        .border-preparing { border-left-color: var(--st-preparing); }
-        .border-applied { border-left-color: var(--st-applied); }
-        .border-accepted { border-left-color: var(--st-accepted); }
-        .border-rejected { border-left-color: var(--st-rejected); }
-
-        .project-info h4 { font-size: 18px; margin-bottom: 8px; color: var(--text-main); font-weight: bold; }
-        .project-meta { font-size: 13px; color: var(--text-sub); display: flex; gap: 20px; }
-        .project-meta i { color: var(--brand-blue); width: 16px; }
-        
-        .project-status {
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 11px;
-            font-weight: bold;
-            color: white;
-            letter-spacing: 0.05em;
-        }
-        .bg-hearing { background: var(--st-hearing); }
-        .bg-preparing { background: var(--st-preparing); }
-        .bg-applied { background: var(--st-applied); }
-        .bg-accepted { background: var(--st-accepted); }
-        .bg-rejected { background: var(--st-rejected); }
-
-        /* 共通UIパーツ */
-        .btn {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 50px; /* 丸みのあるボタン */
-            cursor: pointer;
-            font-weight: bold;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            transition: 0.3s;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-        }
-        .btn-primary { 
-            background: linear-gradient(135deg, var(--brand-orange), #ff9f43);
-            color: white; 
-        }
-        .btn-primary:hover { 
+        .selectable-card:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 15px rgba(231, 123, 37, 0.3);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
         }
-        .btn-ghost { background: transparent; color: var(--text-sub); border: 1px solid #ddd; box-shadow: none; }
-        .btn-ghost:hover { background: #f0f0f0; }
-
-        .icon-btn {
-            background: none;
-            border: none;
-            cursor: pointer;
-            color: #ccc;
-            padding: 8px;
-            font-size: 16px;
-            transition: 0.2s;
-            border-radius: 50%;
+        .selectable-card.selected {
+            border-color: #2EB8A0;
+            background-color: #F0FAF8; /* Light tint of accent */
         }
-        .icon-btn:hover { color: var(--brand-orange); background: #fff5eb; }
-        .icon-btn.delete:hover { color: var(--st-rejected); background: #fff0f0; }
-
-        /* モーダル */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(44, 62, 80, 0.4); /* 背景を少し青みがかったグレーに */
-            backdrop-filter: blur(4px);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
+        .selectable-card.selected .check-icon {
+            opacity: 1;
+            transform: scale(1);
         }
-        .modal.active { display: flex; }
-        .modal-content {
-            background: white;
-            padding: 40px;
-            border-radius: 20px;
-            width: 600px;
-            max-width: 90%;
-            max-height: 90vh; /* 高さ制限 */
-            overflow-y: auto; /* スクロール */
-            box-shadow: 0 20px 50px rgba(0,0,0,0.1);
-            border-top: 6px solid var(--brand-orange);
+        
+        /* Pro Zone Blur Effect */
+        .pro-blur-container {
+            position: relative;
+            overflow: hidden;
         }
-        .form-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
+        .pro-blur-content {
+            filter: blur(4px);
+            opacity: 0.6;
+            pointer-events: none;
+            user-select: none;
         }
-        .form-full { grid-column: span 2; }
-        .form-group { margin-bottom: 20px; }
-        .form-group label { display: block; margin-bottom: 8px; font-weight: bold; font-size: 13px; color: var(--text-main); }
-        .form-group input, .form-group select {
-            width: 100%; padding: 12px; border: 2px solid #f0f0f0; border-radius: 10px;
-            font-size: 14px; transition: 0.3s;
-        }
-        .form-group input:focus, .form-group select:focus {
-            border-color: var(--brand-blue);
-            outline: none;
+        .pro-overlay {
+            background: linear-gradient(to bottom, rgba(247,249,252,0.2) 0%, rgba(247,249,252,0.9) 60%, rgba(247,249,252,1) 100%);
         }
 
-        /* フッター */
-        .app-footer {
-            position: fixed;
-            bottom: 0;
-            left: 0;
+        /* Range Slider Styling */
+        input[type=range] {
+            -webkit-appearance: none;
             width: 100%;
-            text-align: center;
-            padding: 8px 0;
-            font-size: 11px;
-            color: #aaa;
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(3px);
-            z-index: 100;
-            border-top: 1px solid rgba(0,0,0,0.03);
-            pointer-events: none; /* クリックを邪魔しないように */
+            background: transparent;
         }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: #1A3A5C;
+            cursor: pointer;
+            margin-top: -8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #cbd5e1;
+            border-radius: 2px;
+        }
+
+        /* Print Styles */
+        @media print {
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            body { background: white; font-size: 12pt; }
+            .container { max-width: 100%; padding: 0; }
+            .shadow-sm, .shadow-md { box-shadow: none !important; border: 1px solid #e2e8f0; }
+            .pro-zone { display: none !important; }
+            #results-list { grid-template-columns: 1fr; }
+            .page-break { page-break-before: always; }
+        }
+
+        /* Dark Mode Overrides */
+        .dark body { background-color: #111827; color: #F3F4F6; }
+        .dark .bg-app-bg { background-color: #111827; }
+        .dark .bg-white { background-color: #1F2937; }
+        .dark .text-app-text { color: #F3F4F6; }
+        .dark .text-gray-500, .dark .text-gray-600, .dark .text-gray-700 { color: #9CA3AF; }
+        .dark .bg-gray-50 { background-color: #374151; }
+        .dark .border-gray-200, .dark .border-gray-100 { border-color: #4B5563; }
+        .dark header { background-color: #1F2937; border-bottom: 1px solid #374151; }
+        .dark .selectable-card.selected { background-color: rgba(46, 184, 160, 0.2); }
+        .dark .pro-overlay { background: linear-gradient(to bottom, rgba(17,24,39,0.2) 0%, rgba(17,24,39,0.9) 60%, rgba(17,24,39,1) 100%); }
+        .dark .bg-blue-50 { background-color: rgba(30, 58, 138, 0.3); border-color: #1E3A8A; color: #BFDBFE; }
+        .dark .text-blue-500, .dark .text-blue-800 { color: #93C5FD; }
+        .dark .bg-green-50 { background-color: rgba(6, 78, 59, 0.3); border-color: #064E3B; color: #A7F3D0; }
+        .dark .text-green-800, .dark .text-green-700 { color: #6EE7B7; }
+        .dark .bg-orange-50 { background-color: rgba(124, 45, 18, 0.3); border-color: #7C2D12; color: #FDBA74; }
+        .dark .text-orange-800, .dark .text-orange-700 { color: #FDBA74; }
+        .dark .bg-gray-100 { background-color: #374151; color: #D1D5DB; }
     </style>
 </head>
-<body>
+<body class="bg-app-bg font-sans min-h-screen flex flex-col transition-colors duration-300">
 
-    <!-- === HOME VIEW: クライアント一覧 === -->
-    <div id="view-home" class="view-section active">
-        <div class="home-container">
-            <header class="home-header">
+    <!-- Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-40 no-print transition-colors duration-300">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity" onclick="goToTop()" title="先頭画面に戻る">
+                <div class="bg-app-main text-white p-2 rounded-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                </div>
                 <div>
-                    <h1><i class="fas fa-users"></i> クライアント管理</h1>
-                    <p style="color:#888; margin-top:5px; margin-left:5px;">現在管理中のクライアント一覧</p>
+                    <h1 class="font-bold text-lg text-app-main leading-tight">補助金マッチングナビ</h1>
+                    <p class="text-xs text-gray-500">あなたの会社に合う補助金、見つかります</p>
                 </div>
-                <div class="header-actions">
-                    <button class="btn btn-ghost" onclick="openDataModal()" title="データのバックアップと復元">
-                        <i class="fas fa-database"></i> データ管理
-                    </button>
-                    <button class="btn btn-primary" onclick="openClientModal()">
-                        <i class="fas fa-plus"></i> 新規クライアント
-                    </button>
-                </div>
-            </header>
-
-            <div id="clientList" class="client-grid">
-                <!-- クライアントカードがここに生成されます -->
             </div>
-            
-            <div style="margin-top: 40px; text-align: center; color: #aaa; font-size: 12px;">
-                <p>※ この画面で会社を選択すると、詳細画面へ移動します</p>
+            <div class="flex items-center gap-4">
+                <button onclick="openHelpModal()" class="text-gray-500 hover:text-app-main transition-colors flex flex-col items-center" title="使い方">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    <span class="text-[10px] mt-0.5 font-bold">使い方</span>
+                </button>
+                <button onclick="openSettingsModal()" class="text-gray-500 hover:text-app-main transition-colors flex flex-col items-center" title="設定">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                    <span class="text-[10px] mt-0.5 font-bold">設定</span>
+                </button>
             </div>
         </div>
-    </div>
+    </header>
 
-    <!-- === DETAIL VIEW: 詳細・商談画面 === -->
-    <div id="view-detail" class="view-section">
-        <div class="detail-layout">
-            <!-- 左サイド: 商談メモ・顧客情報 -->
-            <aside class="sidebar">
-                <div class="back-btn" onclick="goHome()">
-                    <i class="fas fa-arrow-left"></i> 一覧に戻る
-                </div>
-                
-                <div class="client-profile">
-                    <div class="client-profile-header">
-                        <div style="flex:1">
-                            <h2 id="detailClientName">会社名</h2>
-                            <p id="detailIndustry" style="font-weight:bold; color:var(--brand-blue);">業種・備考</p>
-                            <p id="detailAddress" style="font-size:12px; margin-top:5px;"><i class="fas fa-map-marker-alt" style="width:16px; text-align:center;"></i> <span>-</span></p>
-                            <p id="detailPhone" style="font-size:12px;"><i class="fas fa-phone" style="width:16px; text-align:center;"></i> <span>-</span></p>
-                        </div>
-                        <button class="icon-btn" onclick="editClientInfo()" title="基本情報を編集" style="color:var(--brand-blue); border:1px solid #eee; width:36px; height:36px; display:flex; align-items:center; justify-content:center;">
-                            <i class="fas fa-pen"></i>
-                        </button>
-                    </div>
+    <main class="flex-grow container mx-auto px-4 py-8 max-w-4xl relative">
+        
+        <!-- Progress Bar -->
+        <div id="progress-container" class="mb-10 no-print">
+            <div class="flex justify-between items-center mb-2">
+                <span class="text-xs font-bold text-app-main" id="progress-text">STEP 1 / 4</span>
+                <span class="text-xs text-gray-500" id="progress-title">基本情報の入力</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2">
+                <div id="progress-bar" class="bg-app-accent h-2 rounded-full transition-all duration-500" style="width: 25%"></div>
+            </div>
+        </div>
 
-                    <table class="client-detail-table">
-                        <tr><th>代表者</th><td id="detailCeo">-</td></tr>
-                        <tr><th>従業員数</th><td id="detailEmployees">-</td></tr>
-                        <tr><th>資本金</th><td id="detailCapital">-</td></tr>
-                        <tr><th>決算月</th><td id="detailClosing">-</td></tr>
-                    </table>
-                </div>
-
-                <!-- ヒアリングタグ -->
-                <div class="tag-section">
-                    <div class="section-label"><i class="fas fa-check-square"></i> クイック・ヒアリング</div>
-                    <div class="tag-container" id="tagContainer">
+        <!-- ==================== STEP 1 ==================== -->
+        <section id="step-1" class="step-section animate-fade-in">
+            <h2 class="text-2xl font-bold text-app-text mb-6 text-center">あなたの会社について教えてください</h2>
+            
+            <div class="space-y-8">
+                <!-- 業種 -->
+                <div class="bg-white p-6 rounded-xl shadow-sm">
+                    <h3 class="font-bold text-lg mb-4 flex items-center gap-2">
+                        <span class="bg-app-tag text-app-main px-2 py-1 rounded text-sm">必須</span>
+                        主な業種を選んでください
+                    </h3>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3" id="options-industry">
                         <!-- JSで生成 -->
                     </div>
                 </div>
 
-                <div class="memo-section">
-                    <div class="memo-label-row">
-                        <div class="section-label"><i class="fas fa-sticky-note"></i> 商談メモ</div>
-                        <span id="memoStatus" style="font-size:11px; color:var(--st-accepted); display:none;">保存しました</span>
+                <!-- 従業員数 -->
+                <div class="bg-white p-6 rounded-xl shadow-sm">
+                    <h3 class="font-bold text-lg mb-4 flex items-center gap-2">
+                        <span class="bg-app-tag text-app-main px-2 py-1 rounded text-sm">必須</span>
+                        現在の従業員数
+                    </h3>
+                    <div class="grid grid-cols-2 md:grid-cols-5 gap-3" id="options-employees">
+                        <!-- JSで生成 -->
                     </div>
-                    
-                    <!-- テンプレートボタンと日付入力 -->
-                    <div class="memo-toolbar">
-                        <!-- 日付入力エリア -->
-                        <div style="display:flex; align-items:center; gap:5px; padding-right:8px; margin-right:8px; border-right:1px solid #eee;">
-                            <input type="date" id="memoDate" class="memo-date-input">
-                            <button class="template-btn btn-date" onclick="insertDate()" title="選択した日付を挿入">
-                                <i class="fas fa-calendar-plus"></i> 挿入
-                            </button>
-                        </div>
+                </div>
 
-                        <button class="template-btn" onclick="insertTemplate('現状')">＋現状</button>
-                        <button class="template-btn" onclick="insertTemplate('提案')">＋提案</button>
-                        <button class="template-btn" onclick="insertTemplate('Next')">＋Next</button>
+                <!-- 創業年数 -->
+                <div class="bg-white p-6 rounded-xl shadow-sm">
+                    <h3 class="font-bold text-lg mb-4 flex items-center gap-2">
+                        <span class="bg-app-tag text-app-main px-2 py-1 rounded text-sm">必須</span>
+                        創業からの年数
+                    </h3>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3" id="options-years">
+                        <!-- JSで生成 -->
                     </div>
-
-                    <textarea id="clientMemo" placeholder="日付を選択して挿入ボタンを押すと、時系列に記録できます..."></textarea>
                 </div>
-            </aside>
+            </div>
 
-            <!-- 右メイン: 案件リスト -->
-            <main class="main-content">
-                <div class="main-header">
-                    <h3><i class="fas fa-file-invoice-dollar"></i> 提案・申請中の案件</h3>
-                    <button class="btn btn-primary" onclick="openProjectModal()">
-                        <i class="fas fa-plus"></i> 案件を追加
-                    </button>
+            <div class="mt-8 flex justify-center">
+                <button onclick="nextStep(2)" id="btn-next-1" class="bg-app-main text-white font-bold py-3 px-12 rounded-full shadow-md hover:bg-[#122a44] transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                    次へ進む
+                </button>
+            </div>
+        </section>
+
+        <!-- ==================== STEP 2 ==================== -->
+        <section id="step-2" class="step-section hidden animate-fade-in">
+            <h2 class="text-2xl font-bold text-app-text mb-2 text-center">今、どんな課題がありますか？</h2>
+            <p class="text-center text-gray-500 mb-6">（複数選択OK・当てはまるものをすべて選んでください）</p>
+            
+            <div class="bg-white p-6 rounded-xl shadow-sm">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="options-issues">
+                    <!-- JSで生成 -->
                 </div>
+            </div>
 
-                <div id="projectList" class="project-list">
-                    <!-- 案件カードがここに生成されます -->
+            <div class="mt-8 flex justify-between items-center max-w-md mx-auto">
+                <button onclick="prevStep(1)" class="text-app-main font-bold py-3 px-6 hover:underline">
+                    戻る
+                </button>
+                <button onclick="nextStep(3)" id="btn-next-2" class="bg-app-main text-white font-bold py-3 px-12 rounded-full shadow-md hover:bg-[#122a44] transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                    次へ進む
+                </button>
+            </div>
+        </section>
+
+        <!-- ==================== STEP 3 ==================== -->
+        <section id="step-3" class="step-section hidden animate-fade-in">
+            <h2 class="text-2xl font-bold text-app-text mb-6 text-center">希望する補助金の規模感を教えてください</h2>
+            
+            <div class="bg-white p-6 rounded-xl shadow-sm max-w-2xl mx-auto">
+                <div class="flex flex-col gap-3" id="options-scale">
+                    <!-- JSで生成 -->
                 </div>
-            </main>
-        </div>
-    </div>
+            </div>
 
-    <!-- モーダル: クライアント登録・編集 -->
-    <div id="clientModal" class="modal">
-        <div class="modal-content">
-            <h3 id="clientModalTitle" style="margin-bottom:20px; color:var(--text-main);">新規クライアント登録</h3>
-            <form onsubmit="saveClient(event)">
-                <input type="hidden" id="editClientId">
+            <div class="mt-8 flex justify-between items-center max-w-md mx-auto">
+                <button onclick="prevStep(2)" class="text-app-main font-bold py-3 px-6 hover:underline">
+                    戻る
+                </button>
+                <button onclick="showResults()" id="btn-next-3" class="bg-app-accent text-white font-bold py-3 px-10 rounded-full shadow-md hover:bg-[#259b87] transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
+                    </svg>
+                    結果を見る
+                </button>
+            </div>
+        </section>
+
+        <!-- ==================== STEP 4 (Results) ==================== -->
+        <section id="step-4" class="step-section hidden animate-fade-in">
+            
+            <!-- Controls Toolbar -->
+            <div class="flex flex-wrap justify-between items-center mb-6 no-print gap-4">
+                <button onclick="resetApp()" class="text-gray-500 hover:text-app-main flex items-center gap-1 text-sm font-bold">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                    最初からやり直す
+                </button>
+                <button onclick="window.print()" class="bg-white border border-gray-300 text-gray-700 font-bold py-2 px-4 rounded shadow-sm hover:bg-gray-50 flex items-center gap-2 text-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+                    この結果を印刷する
+                </button>
+            </div>
+
+            <!-- Support Message -->
+            <div id="support-message" class="bg-white border-l-4 border-app-positive p-4 rounded shadow-sm mb-6 text-app-text font-bold">
+                <!-- JSで動的に挿入 -->
+            </div>
+
+            <!-- Filters (No print) -->
+            <div class="bg-white p-4 rounded-lg shadow-sm mb-8 no-print border border-gray-100">
+                <div class="flex items-center justify-between cursor-pointer md:cursor-default" onclick="toggleMobileFilters()">
+                    <h3 class="font-bold text-sm flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-app-main" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
+                        さらに絞り込む
+                    </h3>
+                    <svg id="filter-chevron" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 md:hidden transition-transform" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                </div>
                 
-                <div class="form-grid">
-                    <div class="form-group form-full">
-                        <label>会社名 *</label>
-                        <input type="text" id="clientName" required placeholder="例: 株式会社〇〇">
+                <div id="filter-options" class="hidden md:grid grid-cols-1 md:grid-cols-4 gap-4 mt-4 pt-4 border-t border-gray-100">
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">並び替え</label>
+                        <select id="filter-sort" class="w-full bg-gray-50 border border-gray-200 rounded p-2 text-sm focus:outline-none focus:border-app-main" onchange="applyFilters()">
+                            <option value="match">おすすめ順</option>
+                            <option value="amount_desc">補助上限額が高い順</option>
+                            <option value="diff_asc">申請しやすい順</option>
+                        </select>
                     </div>
-                    
-                    <div class="form-group">
-                        <label>業種</label>
-                        <input type="text" id="clientIndustry" placeholder="例: 金属加工業">
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">難易度</label>
+                        <select id="filter-diff" class="w-full bg-gray-50 border border-gray-200 rounded p-2 text-sm focus:outline-none focus:border-app-main" onchange="applyFilters()">
+                            <option value="all">すべて</option>
+                            <option value="easy">やさしい（★1〜2）</option>
+                            <option value="normal">ふつう（★3）</option>
+                        </select>
                     </div>
-                    <div class="form-group">
-                        <label>代表者名</label>
-                        <input type="text" id="clientCeo" placeholder="例: 山田 太郎">
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">公募時期</label>
+                        <select id="filter-freq" class="w-full bg-gray-50 border border-gray-200 rounded p-2 text-sm focus:outline-none focus:border-app-main" onchange="applyFilters()">
+                            <option value="all">すべて</option>
+                            <option value="通年">通年（いつでも）</option>
+                            <option value="年2〜3回">年2〜3回</option>
+                        </select>
                     </div>
-
-                    <div class="form-group form-full">
-                        <label>所在地</label>
-                        <input type="text" id="clientAddress" placeholder="例: 東京都千代田区...">
-                    </div>
-
-                    <div class="form-group">
-                        <label>電話番号</label>
-                        <input type="text" id="clientPhone" placeholder="03-xxxx-xxxx">
-                    </div>
-                    <div class="form-group">
-                        <label>従業員数 (常勤)</label>
-                        <input type="number" id="clientEmployees" placeholder="人">
-                    </div>
-
-                    <div class="form-group">
-                        <label>資本金</label>
-                        <input type="text" id="clientCapital" placeholder="例: 1,000万円">
-                    </div>
-                    <div class="form-group">
-                        <label>決算月</label>
-                        <select id="clientClosing">
-                            <option value="">未選択</option>
-                            <option value="1月">1月</option>
-                            <option value="2月">2月</option>
-                            <option value="3月">3月</option>
-                            <option value="4月">4月</option>
-                            <option value="5月">5月</option>
-                            <option value="6月">6月</option>
-                            <option value="7月">7月</option>
-                            <option value="8月">8月</option>
-                            <option value="9月">9月</option>
-                            <option value="10月">10月</option>
-                            <option value="11月">11月</option>
-                            <option value="12月">12月</option>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">最低上限額</label>
+                        <select id="filter-amount" class="w-full bg-gray-50 border border-gray-200 rounded p-2 text-sm focus:outline-none focus:border-app-main" onchange="applyFilters()">
+                            <option value="0">こだわらない</option>
+                            <option value="1000000">100万円以上</option>
+                            <option value="5000000">500万円以上</option>
                         </select>
                     </div>
                 </div>
+            </div>
 
-                <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:30px;">
-                    <button type="button" class="btn btn-ghost" onclick="closeModals()">キャンセル</button>
-                    <button type="submit" class="btn btn-primary">保存</button>
+            <!-- Results List -->
+            <div id="results-list" class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+                <!-- JSでカードを生成 -->
+            </div>
+
+            <!-- Pro Zone (Upsell) -->
+            <div class="mt-16 pro-zone no-print border-t-2 border-dashed border-gray-300 pt-12">
+                <div class="text-center mb-8">
+                    <span class="bg-app-main text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider mb-3 inline-block">Premium Feature</span>
+                    <h2 class="text-2xl font-bold text-app-main mb-2">AIがさらに詳しく分析します</h2>
+                    <p class="text-gray-600">あなたの会社の状況に合わせた具体的な申請戦略をAIが自動生成。</p>
                 </div>
-            </form>
+
+                <div class="pro-blur-container bg-white rounded-xl shadow-md border border-gray-200 p-6 relative">
+                    <!-- Blurred Fake Content -->
+                    <div class="pro-blur-content space-y-4">
+                        <div class="h-6 bg-gray-200 rounded w-1/3 mb-4"></div>
+                        <div class="h-4 bg-gray-200 rounded w-full"></div>
+                        <div class="h-4 bg-gray-200 rounded w-5/6"></div>
+                        <div class="h-4 bg-gray-200 rounded w-4/6"></div>
+                        
+                        <div class="mt-6 flex gap-4">
+                            <div class="h-24 bg-gray-100 rounded w-1/2 border border-gray-200"></div>
+                            <div class="h-24 bg-gray-100 rounded w-1/2 border border-gray-200"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Clear Overlay with CTA -->
+                    <div class="absolute inset-0 pro-overlay flex flex-col items-center justify-center text-center p-6">
+                        <div class="bg-white/90 backdrop-blur-sm p-6 rounded-xl shadow-lg border border-gray-100 max-w-md w-full">
+                            <h3 class="font-bold text-lg mb-4 text-app-main">Pro版で利用できる機能</h3>
+                            <ul class="text-sm text-left text-gray-700 space-y-2 mb-6">
+                                <li class="flex items-start gap-2">
+                                    <svg class="w-4 h-4 text-app-accent mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                    Claude AIによる申請要件の詳細解説
+                                </li>
+                                <li class="flex items-start gap-2">
+                                    <svg class="w-4 h-4 text-app-accent mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                    事業計画書のたたき台自動生成
+                                </li>
+                                <li class="flex items-start gap-2">
+                                    <svg class="w-4 h-4 text-app-accent mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                    採択されやすいポイントのAIアドバイス
+                                </li>
+                                <li class="flex items-start gap-2">
+                                    <svg class="w-4 h-4 text-app-accent mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                    税理士へのオンライン相談予約連携
+                                </li>
+                            </ul>
+                            <button onclick="openProModal()" class="w-full bg-gradient-to-r from-app-main to-[#2a5a8c] text-white font-bold py-3 px-4 rounded-lg shadow-md hover:shadow-lg transition-all transform hover:-translate-y-1">
+                                Pro版でAI申請サポートを見る
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- FAQ Section (Visible only on Result step or bottom) -->
+        <section id="faq-section" class="mt-20 hidden no-print">
+            <h3 class="font-bold text-xl mb-6 text-center text-app-main">よくあるご質問</h3>
+            <div class="space-y-4 max-w-2xl mx-auto">
+                <div class="bg-white p-5 rounded-lg shadow-sm">
+                    <h4 class="font-bold flex gap-2"><span class="text-app-accent">Q.</span> 補助金と助成金の違いは何ですか？</h4>
+                    <p class="text-sm text-gray-600 mt-2 ml-6">一般的に「補助金」は予算枠があり採択率（審査）がありますが、金額が大きい傾向にあります。「助成金」は主に厚生労働省管轄で、要件を満たせば原則受給できますが、事前の計画提出など厳格な労務管理が求められます。</p>
+                </div>
+                <div class="bg-white p-5 rounded-lg shadow-sm">
+                    <h4 class="font-bold flex gap-2"><span class="text-app-accent">Q.</span> 申請から入金までどのくらいかかりますか？</h4>
+                    <p class="text-sm text-gray-600 mt-2 ml-6">補助金によりますが、申請から採択まで1〜3ヶ月、その後事業を実施して完了報告を行い、実際に入金されるまで半年〜1年以上かかるケースが一般的です。資金繰りには注意が必要です。</p>
+                </div>
+                <div class="bg-white p-5 rounded-lg shadow-sm">
+                    <h4 class="font-bold flex gap-2"><span class="text-app-accent">Q.</span> 個人事業主でも申請できますか？</h4>
+                    <p class="text-sm text-gray-600 mt-2 ml-6">はい、IT導入補助金や小規模事業者持続化補助金など、個人事業主でも申請可能な制度は多くあります。本ナビでは「従業員数：1人（個人事業主）」を選ぶことで対応した補助金をご案内します。</p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-app-main text-white py-8 mt-auto text-center border-t-4 border-app-accent print-only-footer">
+        <div class="container mx-auto px-4">
+            <p class="font-bold mb-2">補助金マッチングナビ</p>
+            <p class="text-xs text-gray-400 max-w-xl mx-auto mb-4">
+                免責事項：本サイトに掲載している情報は参考情報であり、制度の概要を簡易的にまとめたものです。最新の公募要領、対象要件、詳細な申請スケジュール等は、必ず各省庁および事務局の公式サイトをご確認いただくか、顧問税理士等の専門家にご相談ください。
+            </p>
+            <p class="text-xs text-gray-500">&copy; 2026 Smile Plus Consulting All Rights Reserved.</p>
+        </div>
+    </footer>
+
+    <!-- ==================== Modals ==================== -->
+    
+    <!-- Detail Modal -->
+    <div id="detail-modal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 opacity-0 transition-opacity duration-300 no-print">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto transform scale-95 transition-transform duration-300 relative" id="detail-modal-content">
+            <!-- Close btn -->
+            <button onclick="closeModal('detail-modal')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-700 bg-gray-100 rounded-full p-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+            
+            <div id="modal-body" class="p-6 md:p-8">
+                <!-- JSでコンテンツを注入 -->
+            </div>
         </div>
     </div>
 
-    <!-- モーダル: 案件登録 -->
-    <div id="projectModal" class="modal">
-        <div class="modal-content">
-            <h3 style="margin-bottom:20px; color:var(--text-main);">補助金案件の追加</h3>
-            <form onsubmit="addProject(event)">
-                <div class="form-group">
-                    <label>補助金名 *</label>
-                    <input type="text" id="newProjectName" required placeholder="例: ものづくり補助金 省力化枠">
-                </div>
-                <div class="form-group">
-                    <label>ステータス</label>
-                    <select id="newProjectStatus">
-                        <option value="hearing">ヒアリング・提案</option>
-                        <option value="preparing">申請準備中</option>
-                        <option value="applied">申請完了（審査待）</option>
-                        <option value="accepted">採択決定</option>
-                        <option value="rejected">不採択</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>投資予定額</label>
-                    <input type="number" id="newProjectAmount" placeholder="例: 10000000">
-                </div>
-                <div class="form-group">
-                    <label>申請期限</label>
-                    <input type="date" id="newProjectDeadline">
-                </div>
-                <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:30px;">
-                    <button type="button" class="btn btn-ghost" onclick="closeModals()">キャンセル</button>
-                    <button type="submit" class="btn btn-primary">追加</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- モーダル: データ管理 -->
-    <div id="dataModal" class="modal">
-        <div class="modal-content">
-            <h3 style="margin-bottom:20px; color:var(--text-main);"><i class="fas fa-database"></i> データのバックアップ・復元</h3>
-            <p style="font-size:13px; color:var(--text-sub); margin-bottom:20px; line-height:1.6;">
-                現在のデータをファイルとして保存したり、保存したファイルからデータを復元できます。<br>
-                <span style="color:var(--st-rejected);">※ 復元を行うと、現在のデータは上書きされます。</span>
+    <!-- Pro Modal -->
+    <div id="pro-modal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 opacity-0 transition-opacity duration-300 no-print">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md transform scale-95 transition-transform duration-300 relative text-center p-8">
+            <button onclick="closeModal('pro-modal')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-700">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+            
+            <div class="w-16 h-16 bg-app-tag rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-app-main" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+            </div>
+            
+            <h3 class="text-xl font-bold text-app-main mb-2">この機能はPro版でご利用いただけます</h3>
+            <p class="text-sm text-gray-600 mb-6">
+                Pro版は税理士事務所向けのプレミアムライセンスです。顧問先への提案資料の自動生成や、AIによる詳細な事業計画サポート機能が解放されます。
             </p>
             
-            <div style="display:flex; flex-direction:column; gap:15px;">
-                <button class="btn btn-primary" onclick="exportData()" style="justify-content:center;">
-                    <i class="fas fa-download"></i> バックアップを保存 (JSON)
-                </button>
+            <div class="bg-gray-50 p-4 rounded-lg text-left mb-6 border border-gray-100">
+                <h4 class="font-bold text-sm mb-2">【税理士事務所様向けプラン】</h4>
+                <ul class="text-xs text-gray-600 space-y-1">
+                    <li>・自社ロゴへの差し替え機能</li>
+                    <li>・顧問先専用URLの発行</li>
+                    <li>・AI事業計画書アシスタント</li>
+                </ul>
+            </div>
+
+            <a href="mailto:info@example.com?subject=Pro版についてのお問い合わせ" class="block w-full bg-app-main text-white font-bold py-3 px-4 rounded shadow hover:bg-[#122a44] transition-colors">
+                詳細を問い合わせる
+            </a>
+            <button onclick="closeModal('pro-modal')" class="mt-4 text-sm text-gray-500 hover:underline">
+                今は閉じる
+            </button>
+        </div>
+    </div>
+
+    <!-- Help Modal -->
+    <div id="help-modal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 opacity-0 transition-opacity duration-300 no-print">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md transform scale-95 transition-transform duration-300 relative p-8">
+            <button onclick="closeModal('help-modal')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-700 bg-gray-100 rounded-full p-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+            
+            <h3 class="text-xl font-bold text-app-main mb-6 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                このアプリの使い方
+            </h3>
+            
+            <div class="space-y-6">
+                <div>
+                    <h4 class="font-bold text-app-accent mb-2 border-b border-gray-200 pb-1">目的</h4>
+                    <p class="text-sm text-gray-700 leading-relaxed">
+                        数ある補助金の中から、あなたの会社の状況や課題に最も適した補助金を簡単に見つけ出すためのナビゲーションツールです。
+                    </p>
+                </div>
                 
-                <div style="position:relative; margin-top:10px; padding-top:15px; border-top:1px dashed #ddd;">
-                    <input type="file" id="importFile" accept=".json" style="display:none;" onchange="importData(this)">
-                    <button class="btn btn-ghost" onclick="document.getElementById('importFile').click()" style="width:100%; justify-content:center; border:2px dashed #ddd; color:var(--text-sub);">
-                        <i class="fas fa-upload"></i> バックアップから復元
+                <div>
+                    <h4 class="font-bold text-app-accent mb-2 border-b border-gray-200 pb-1">使い方</h4>
+                    <ul class="text-sm text-gray-700 space-y-3 list-decimal list-inside">
+                        <li class="pl-1">
+                            <span class="font-bold text-app-main">基本情報の入力（STEP1）</span><br>
+                            <span class="ml-5 inline-block mt-1">自社の業種、従業員数、創業年数を選択します。</span>
+                        </li>
+                        <li class="pl-1">
+                            <span class="font-bold text-app-main">課題の選択（STEP2）</span><br>
+                            <span class="ml-5 inline-block mt-1">現在抱えている課題や、やりたいことを選びます。（複数選択可能です）</span>
+                        </li>
+                        <li class="pl-1">
+                            <span class="font-bold text-app-main">規模感の選択（STEP3）</span><br>
+                            <span class="ml-5 inline-block mt-1">希望する補助金額の規模感を選択します。</span>
+                        </li>
+                        <li class="pl-1">
+                            <span class="font-bold text-app-main">マッチング結果の確認</span><br>
+                            <span class="ml-5 inline-block mt-1">条件に合った補助金が表示されます。「詳しく見る」ボタンで要件や注意点を確認してください。</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="mt-8 text-center">
+                <button onclick="closeModal('help-modal')" class="bg-gray-200 text-gray-800 font-bold py-2 px-8 rounded-full hover:bg-gray-300 transition-colors">
+                    閉じる
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 opacity-0 transition-opacity duration-300 no-print">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm transform scale-95 transition-transform duration-300 relative p-8">
+            <button onclick="closeModal('settings-modal')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-700 bg-gray-100 rounded-full p-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+            
+            <h3 class="text-xl font-bold text-app-main mb-6 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                設定
+            </h3>
+            
+            <div class="mb-8">
+                <h4 class="text-sm font-bold text-gray-500 mb-3">色合い（テーマ）</h4>
+                <div class="flex gap-3">
+                    <button onclick="setTheme('light')" id="btn-theme-light" class="flex-1 py-2 px-4 border border-gray-300 rounded-lg text-sm font-bold bg-gray-50 hover:bg-gray-100 flex items-center justify-center gap-2 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                        ライト
+                    </button>
+                    <button onclick="setTheme('dark')" id="btn-theme-dark" class="flex-1 py-2 px-4 border border-gray-300 rounded-lg text-sm font-bold hover:bg-gray-100 flex items-center justify-center gap-2 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
+                        ダーク
                     </button>
                 </div>
             </div>
 
-            <div style="display:flex; justify-content:flex-end; margin-top:25px;">
-                <button type="button" class="btn btn-ghost" onclick="closeModals()">閉じる</button>
+            <!-- 開発・デバッグ用機能 -->
+            <div class="mt-12 pt-4 border-t border-gray-100">
+                <div class="flex justify-between items-center text-xs opacity-40 hover:opacity-100 transition-opacity">
+                    <button onclick="loadDemoData()" class="text-gray-500 hover:text-app-main underline">
+                        デモデータ
+                    </button>
+                    <button onclick="clearData()" class="text-red-400 hover:text-red-600 underline">
+                        クリア
+                    </button>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- フッター -->
-    <footer class="app-footer">
-        テスト版（ベータ版） © 2026 SPC
-    </footer>
-
+    <!-- ==================== JavaScript ==================== -->
     <script>
-        // --- 設定・マスタデータ ---
-        // 診断士がチェックすべきキーワードリスト
-        const HEARING_TAGS = [
-            '設備投資', 'IT導入', '販路開拓', 
-            '賃上げ', '事業承継', '新事業', 
-            '人材不足', '資金調達', 'EC構築',
-            '海外展開'
-        ];
+        // --- 1. Data Definitions ---
+        const configData = {
+            industries: [
+                "製造業", "建設業", "飲食・宿泊業", "小売業", 
+                "IT・情報サービス", "美容・理容", "医療・介護", "その他サービス業"
+            ],
+            employees: [
+                "1人（個人事業主）", "2〜5人", "6〜20人", "21〜50人", "51人以上"
+            ],
+            years: [
+                "創業1年未満", "1〜3年", "3〜10年", "10年以上"
+            ],
+            issues: [
+                "設備・機械を新しくしたい", "ITシステムを導入したい", "省エネ・脱炭素に取り組みたい", 
+                "新商品・新サービスを開発したい", "販路を広げたい・新市場に挑戦したい", "人材を採用・育成したい", 
+                "事業を引き継ぎたい・後継者問題がある", "海外展開を考えている", "コスト削減・業務効率化をしたい", "その他"
+            ],
+            scales: [
+                "100万円未満でも活用したい", "100〜500万円程度", "500万〜1,000万円程度", 
+                "1,000万円以上も視野に入れたい", "規模より採択率を重視したい"
+            ]
+        };
 
-        // --- データ管理 ---
-        let clients = [
+        const grantsData = [
             {
                 id: 1,
-                name: '株式会社テックソリューション',
-                industry: 'IT・ソフトウェア',
-                ceo: '技術 進',
-                address: '東京都渋谷区...',
-                phone: '03-1234-5678',
-                employees: 15,
-                capital: '3,000万円',
-                closing: '9月',
-                tags: ['賃上げ', 'IT導入', '新事業'],
-                memo: '【2024/02/01(木)】\n■現状・課題\n・社長は新しい技術に非常に積極的。\n\n■提案内容\n・次回は「IT導入補助金」とセットで「セキュリティ対策」も提案する。\n\n',
-                projects: [
-                    { id: 101, name: 'IT導入補助金2024 デジタル化枠', status: 'preparing', amount: 3500000, deadline: '2024-05-20' },
-                    { id: 102, name: '小規模事業者持続化補助金', status: 'hearing', amount: 1500000, deadline: '2024-08-10' }
-                ]
+                name: "IT導入補助金",
+                catchphrase: "ITツール・ソフト導入なら最大450万円",
+                maxAmount: 4500000,
+                maxAmountText: "最大450万円",
+                rate: "1/2〜3/4",
+                industries: ["全業種"], // 全業種対応は検索時に特別扱い
+                issues: ["ITシステムを導入したい", "コスト削減・業務効率化をしたい"],
+                scales: ["小規模", "中小企業"],
+                difficulty: 2,
+                frequency: "通年",
+                description: "中小企業・小規模事業者等が自社の課題やニーズに合ったITツールを導入する経費の一部を補助することで、業務効率化や売上アップをサポートします。",
+                requirements: [
+                    "gBizIDプライムアカウントの取得",
+                    "「みらデジ」経営チェックの実施",
+                    "SECURITY ACTIONの宣言（一つ星または二つ星）"
+                ],
+                expenses: ["ソフトウェア購入費", "クラウド利用料（最大2年分）", "導入関連費（設定・サポート）"],
+                pitfalls: "PCやタブレット等のハードウェア単体での購入は原則対象外です。必ず事前に登録された「IT導入支援事業者」からの導入が必要となります。",
+                url: "https://it-shien.smrj.go.jp/"
             },
             {
                 id: 2,
-                name: '山田製作所',
-                industry: '金属加工業',
-                ceo: '山田 太郎',
-                address: '埼玉県川口市...',
-                phone: '048-111-2222',
-                employees: 4,
-                capital: '500万円',
-                closing: '3月',
-                tags: ['設備投資', '資金調達'],
-                memo: '【2024/01/25(木)】\n■現状・課題\n・工場長との面談が必要。\n・現状、5軸加工機の導入を検討中だが、資金調達が課題。\n\n■Next Action\n・メインバンクへの根回し状況を確認すること。',
-                projects: [
-                    { id: 201, name: 'ものづくり補助金 第18回', status: 'hearing', amount: 15000000, deadline: '2024-06-15' }
-                ]
+                name: "ものづくり補助金",
+                catchphrase: "革新的な製品開発や設備投資に",
+                maxAmount: 12500000, // 通常枠ベース
+                maxAmountText: "最大750万〜5,000万円",
+                rate: "1/2〜2/3",
+                industries: ["製造業", "建設業", "IT・情報サービス", "その他サービス業"],
+                issues: ["設備・機械を新しくしたい", "新商品・新サービスを開発したい", "コスト削減・業務効率化をしたい"],
+                scales: ["中小企業"],
+                difficulty: 4,
+                frequency: "通年",
+                description: "中小企業等が取り組む革新的な製品・サービスの開発、生産プロセス等の省力化に必要な設備投資等を支援します。",
+                requirements: [
+                    "付加価値額が年率平均3%以上増加する計画の策定",
+                    "給与支給総額が年率平均1.5%以上増加すること",
+                    "事業場内最低賃金が地域別最低賃金＋30円以上であること"
+                ],
+                expenses: ["機械装置・システム構築費", "技術導入費", "専門家経費", "クラウドサービス利用費"],
+                pitfalls: "事業計画書の審査が厳しく、革新性（他社がやっていないこと）の証明が求められます。要件未達の場合、補助金の返還義務が生じるリスクがあります。",
+                url: "https://portal.monodukuri-hojo.jp/"
             },
             {
                 id: 3,
-                name: '鈴木ベーカリー',
-                industry: '飲食・小売',
-                ceo: '鈴木 花子',
-                address: '千葉県船橋市...',
-                phone: '047-999-8888',
-                employees: 2,
-                capital: '個人事業',
-                closing: '12月',
-                tags: ['販路開拓', 'EC構築'],
-                memo: '【2023/12/10(日)】\n■現状・課題\n・既存店舗の売り上げは安定。\n・ECサイトでの全国販売を強化したい。\n\n■Next Action\n・持続化補助金の実績報告書を作成中。領収書回収。\n',
-                projects: [
-                    { id: 301, name: '小規模事業者持続化補助金', status: 'accepted', amount: 750000, deadline: '2024-03-14' }
-                ]
+                name: "小規模事業者持続化補助金",
+                catchphrase: "チラシ作成やHP制作など販路開拓に",
+                maxAmount: 2000000,
+                maxAmountText: "最大50万〜200万円",
+                rate: "2/3〜3/4",
+                industries: ["全業種"],
+                issues: ["販路を広げたい・新市場に挑戦したい", "新商品・新サービスを開発したい", "その他"],
+                scales: ["小規模"], // 従業員数でフィルタ
+                difficulty: 2,
+                frequency: "通年",
+                description: "小規模事業者が直面する制度変更等に対応するため、経営計画を作成し、それに基づいて行う販路開拓等の取り組みを支援します。",
+                requirements: [
+                    "小規模事業者であること（商業・サービス業は5名以下、他は20名以下）",
+                    "商工会議所または商工会の助言を受けて経営計画を作成すること",
+                    "過去の同補助金の受給から一定期間経過していること"
+                ],
+                expenses: ["機械装置等費", "広報費（WEBサイト・チラシ等）", "展示会等出展費", "開発費"],
+                pitfalls: "「小規模事業者」の定義（従業員数）に合致しているか確認が必要です。ウェブサイト関連費のみでの申請はできず、他の経費（広告費など）と組み合わせる必要があります。",
+                url: "https://r3.jizokukahojokin.info/"
             },
             {
                 id: 4,
-                name: '株式会社グリーンロジ',
-                industry: '運送・倉庫',
-                ceo: '緑川 健',
-                address: '神奈川県横浜市...',
-                phone: '045-333-4444',
-                employees: 25,
-                capital: '5,000万円',
-                closing: '6月',
-                tags: ['新事業', '設備投資'],
-                memo: '【2024/01/15(月)】\n■現状・課題\n・倉庫業から食品加工への転換を図る。\n・金融機関からの融資は内諾済み。\n\n■提案内容\n・事業再構築補助金（成長枠）への申請。\n',
-                projects: [
-                    { id: 401, name: '事業再構築補助金 成長枠', status: 'applied', amount: 45000000, deadline: '2024-04-30' }
-                ]
+                name: "事業再構築補助金",
+                catchphrase: "思い切った事業転換や新分野展開に",
+                maxAmount: 50000000,
+                maxAmountText: "最大1,500万〜数億円",
+                rate: "1/2〜2/3",
+                industries: ["全業種"],
+                issues: ["販路を広げたい・新市場に挑戦したい", "新商品・新サービスを開発したい", "設備・機械を新しくしたい"],
+                scales: ["中小企業"],
+                difficulty: 5,
+                frequency: "年2〜3回",
+                description: "ポストコロナ・ウィズコロナ時代の経済社会の変化に対応するための、中小企業等の思い切った事業再構築（新分野展開、業態転換等）を支援します。",
+                requirements: [
+                    "事業再構築指針に示す「事業再構築」の定義に該当すること",
+                    "認定経営革新等支援機関と事業計画を策定すること",
+                    "付加価値額が年率平均3.0%以上増加する計画であること"
+                ],
+                expenses: ["建物費（建築・改修）", "機械装置・システム構築費", "技術導入費", "広告宣伝・販売促進費"],
+                pitfalls: "既存事業の単なる拡大ではなく「新しいこと」を始める必要があります。建物の新築は原則認められず、改修がメインとなります。",
+                url: "https://jigyou-saikouchiku.go.jp/"
             },
             {
                 id: 5,
-                name: '田中板金工業',
-                industry: '建設・板金',
-                ceo: '田中 一郎',
-                address: '東京都大田区...',
-                phone: '03-5555-6666',
-                employees: 3,
-                capital: '300万円',
-                closing: '5月',
-                tags: ['事業承継', '人材不足'],
-                memo: '【2024/02/03(土)】\n■現状・課題\n・先代からの事業承継タイミング。\n・若手職人の採用が難航している。\n\n■Next Action\n・後継者の経営ビジョン策定支援。\n',
-                projects: [
-                    { id: 501, name: '事業承継・引継ぎ補助金', status: 'hearing', amount: 6000000, deadline: '2024-07-10' }
-                ]
+                name: "省エネ補助金",
+                catchphrase: "空調や照明などの高効率機器への更新に",
+                maxAmount: 100000000,
+                maxAmountText: "最大数千万〜1億円",
+                rate: "1/3〜1/2",
+                industries: ["製造業", "飲食・宿泊業", "医療・介護", "小売業", "その他サービス業"],
+                issues: ["省エネ・脱炭素に取り組みたい", "設備・機械を新しくしたい", "コスト削減・業務効率化をしたい"],
+                scales: ["中小企業", "全規模"],
+                difficulty: 4,
+                frequency: "年1回",
+                description: "省エネルギー性能の高い機器・設備への更新により、事業所のエネルギー消費を削減する取り組みを支援します。",
+                requirements: [
+                    "一定以上の省エネ効果（省エネルギー率など）が見込まれること",
+                    "SII（環境共創イニシアチブ）に登録された対象設備であること（指定設備導入事業の場合）",
+                    "エネルギー使用量の報告義務（事業完了後）"
+                ],
+                expenses: ["高効率空調", "産業用モーター", "ボイラー", "LED照明器具"],
+                pitfalls: "既存設備の更新が対象であり、新規導入は対象外となるケースが多いです。公募期間が短いため、事前の見積もりや省エネ計算の準備が必須です。",
+                url: "https://sii.or.jp/"
             },
             {
                 id: 6,
-                name: 'エステサロンBelle',
-                industry: '美容・サービス',
-                ceo: '佐藤 美咲',
-                address: '東京都港区...',
-                phone: '03-7777-8888',
-                employees: 1,
-                capital: '個人事業',
-                closing: '1月',
-                tags: ['IT導入', '販路開拓'],
-                memo: '【2023/11/20(月)】\n■現状・課題\n・予約管理が電話中心で非効率。\n・前回は加点不足で不採択。\n\n■提案内容\n・賃上げ加点を追加して再申請を提案中。\n',
-                projects: [
-                    { id: 601, name: 'IT導入補助金 セキュリティ枠', status: 'rejected', amount: 1000000, deadline: '2024-02-15' }
-                ]
+                name: "雇用調整助成金",
+                catchphrase: "従業員の雇用を維持するために",
+                maxAmount: 1000000, // 便宜上
+                maxAmountText: "休業手当の一部を助成",
+                rate: "1/2〜2/3",
+                industries: ["全業種"],
+                issues: ["その他"],
+                scales: ["全規模"],
+                difficulty: 3,
+                frequency: "通年",
+                description: "経済上の理由により事業活動の縮小を余儀なくされた事業主が、従業員を一時的に休業等させることで雇用を維持した場合に、休業手当等の一部を助成します。",
+                requirements: [
+                    "売上高などの生産指標が最近1ヶ月間で前年同月比10%以上減少していること",
+                    "労使間の協定に基づき休業等を実施すること",
+                    "雇用保険の適用事業主であること"
+                ],
+                expenses: ["休業手当", "教育訓練を実施した場合はその費用の一部"],
+                pitfalls: "事前の計画届の提出が原則必要です。勤怠管理や給与計算の書類（タイムカード、賃金台帳など）が正確に整備されていることが前提となります。",
+                url: "https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/koyou_roudou/koyou/kyufukin/pageL07.html"
+            },
+            {
+                id: 7,
+                name: "キャリアアップ助成金",
+                catchphrase: "非正規社員の正社員化や処遇改善に",
+                maxAmount: 800000, // 正社員化コースの場合
+                maxAmountText: "1人あたり最大80万円",
+                rate: "定額",
+                industries: ["全業種"],
+                issues: ["人材を採用・育成したい"],
+                scales: ["中小企業"],
+                difficulty: 3,
+                frequency: "通年",
+                description: "有期雇用労働者、短時間労働者、派遣労働者といった、いわゆる非正規雇用労働者の企業内でのキャリアアップを促進するため、正社員化や処遇改善の取組を実施した事業主に対して助成します。",
+                requirements: [
+                    "就業規則や労働協約に正社員転換等の制度を規定すること",
+                    "キャリアアップ計画を作成し、管轄の労働局の認定を受けること",
+                    "転換後6ヶ月間継続雇用し、転換前より賃金を3%以上増額すること"
+                ],
+                expenses: ["対象労働者の賃金（助成金として支給）"],
+                pitfalls: "必ず「実施前」にキャリアアップ計画を提出する必要があります。就業規則に不備がある（労働基準法違反など）と不支給となります。",
+                url: "https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/koyou_roudou/part_haken/jigyounushi/career.html"
+            },
+            {
+                id: 8,
+                name: "創業支援等事業補助金",
+                catchphrase: "新たに事業を始める方の初期費用に",
+                maxAmount: 2000000,
+                maxAmountText: "最大100万〜200万円",
+                rate: "1/2〜2/3",
+                industries: ["全業種"],
+                issues: ["その他"],
+                scales: ["小規模"],
+                difficulty: 3,
+                frequency: "年1回",
+                description: "新たに創業する者や、事業承継を契機として新しい取り組みを行う者に対し、創業等に要する経費の一部を補助します。（※自治体独自の制度も多数あり）",
+                requirements: [
+                    "公募開始日以降に創業する、または創業後一定期間内であること",
+                    "認定市区町村等による特定創業支援等事業の支援を受けること",
+                    "金融機関等からの資金調達が見込めること"
+                ],
+                expenses: ["店舗借入費", "設備費", "広報費", "法人設立登記にかかる費用は対象外"],
+                pitfalls: "国の補助金だけでなく、各都道府県や市区町村が独自に実施している創業補助金の方が採択されやすいケースがあります。自治体の窓口確認が必須です。",
+                url: "https://www.chusho.meti.go.jp/"
+            },
+            {
+                id: 9,
+                name: "事業承継・引継ぎ補助金",
+                catchphrase: "M&Aや事業承継の専門家費用などに",
+                maxAmount: 6000000,
+                maxAmountText: "最大600万円",
+                rate: "1/2〜2/3",
+                industries: ["全業種"],
+                issues: ["事業を引き継ぎたい・後継者問題がある"],
+                scales: ["中小企業"],
+                difficulty: 3,
+                frequency: "通年",
+                description: "事業承継やM&A（事業再編・事業統合等）を契機とした経営革新等への挑戦や、M&Aによる経営資源の引継ぎを行おうとする中小企業等を支援します。",
+                requirements: [
+                    "事業承継、M&Aを行う予定、あるいは行った中小企業者等であること",
+                    "地域の支援機関（商工会議所、金融機関等）の確認を受けること",
+                    "M&A支援機関登録制度に登録された専門家を利用すること（専門家活用枠の場合）"
+                ],
+                expenses: ["M&A支援業者への仲介手数料等", "デューデリジェンス費用", "事業承継後の設備投資費・廃業費"],
+                pitfalls: "M&Aの仲介手数料を対象とする場合、国が登録した「M&A支援機関」を利用しなければ補助対象になりません。",
+                url: "https://jsh.go.jp/"
+            },
+            {
+                id: 10,
+                name: "中小企業デジタル化応援隊事業",
+                catchphrase: "IT専門家の派遣費用を補助",
+                maxAmount: 300000,
+                maxAmountText: "最大30万円（時給換算）",
+                rate: "定額差引",
+                industries: ["全業種"],
+                issues: ["ITシステムを導入したい", "コスト削減・業務効率化をしたい"],
+                scales: ["小規模", "中小企業"],
+                difficulty: 1,
+                frequency: "通年",
+                description: "全国の中小企業・小規模事業者の様々なデジタル化・IT活用の課題に対して、要件を満たすIT専門家を準委任契約で紹介・派遣し、その謝金の一部を補助します。",
+                requirements: [
+                    "自社のデジタル化に関する課題を持っていること",
+                    "事務局に登録されたIT専門家と契約すること",
+                    "中小企業側も最低時給500円（税込）以上の負担をすること"
+                ],
+                expenses: ["IT専門家への相談・支援に対する謝金"],
+                pitfalls: "システム導入そのものの費用（ソフト購入代など）は出ません。あくまで「専門家のアドバイス費用」の補助です。",
+                url: "https://digitalcamp.jp/"
             }
         ];
 
-        let currentClientId = null;
-        let memoTimeout = null;
-
-        // 初期化
-        document.addEventListener('DOMContentLoaded', () => {
-            loadData();
-            renderClientList();
-            
-            // カレンダーのデフォルトを今日に設定
-            if(document.getElementById('memoDate')) {
-                document.getElementById('memoDate').valueAsDate = new Date();
-            }
-        });
-
-        // データの保存・読込
-        function loadData() {
-            const saved = localStorage.getItem('consultant_clients_manager_v2');
-            if (saved) {
-                const parsed = JSON.parse(saved);
-                // 既存データに新フィールドがない場合の補完は省略（表示時にundefinedチェックで対応）
-                // デモデータ優先判定
-                if(parsed.length <= 2) {
-                } else {
-                    clients = parsed;
-                }
-            }
-        }
-
-        function saveData() {
-            localStorage.setItem('consultant_clients_manager_v2', JSON.stringify(clients));
-        }
-
-        // --- データ管理機能 ---
-        function openDataModal() {
-            document.getElementById('dataModal').classList.add('active');
-        }
-
-        // エクスポート
-        function exportData() {
-            const dataStr = JSON.stringify(clients, null, 2);
-            const blob = new Blob([dataStr], { type: "application/json" });
-            const url = URL.createObjectURL(blob);
-            
-            const a = document.createElement('a');
-            const date = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-            a.href = url;
-            a.download = `subsidy_clients_backup_${date}.json`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }
-
-        // インポート
-        function importData(input) {
-            const file = input.files[0];
-            if (!file) return;
-
-            if (!confirm('現在のデータがバックアップファイルの内容で上書きされます。\nよろしいですか？')) {
-                input.value = ''; // リセット
-                return;
-            }
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const json = JSON.parse(e.target.result);
-                    if (Array.isArray(json)) {
-                        clients = json;
-                        saveData();
-                        renderClientList();
-                        closeModals();
-                        alert('✅ データを復元しました');
-                    } else {
-                        alert('❌ データ形式が正しくありません');
-                    }
-                } catch (err) {
-                    alert('❌ ファイルの読み込みに失敗しました');
-                }
-            };
-            reader.readAsText(file);
-            input.value = ''; // リセット
-        }
-
-        // --- 画面遷移 ---
-        function goHome() {
-            document.getElementById('view-detail').classList.remove('active');
-            document.getElementById('view-home').classList.add('active');
-            currentClientId = null;
-            renderClientList();
-        }
-
-        function goDetail(clientId) {
-            currentClientId = clientId;
-            const client = clients.find(c => c.id === clientId);
-            
-            // 詳細画面にデータをセット
-            document.getElementById('detailClientName').textContent = client.name;
-            document.getElementById('detailIndustry').textContent = client.industry;
-            
-            // 詳細情報
-            document.getElementById('detailAddress').querySelector('span').textContent = client.address || '-';
-            document.getElementById('detailPhone').querySelector('span').textContent = client.phone || '-';
-            
-            document.getElementById('detailCeo').textContent = client.ceo || '-';
-            document.getElementById('detailEmployees').textContent = client.employees ? client.employees + ' 名' : '-';
-            document.getElementById('detailCapital').textContent = client.capital || '-';
-            document.getElementById('detailClosing').textContent = client.closing || '-';
-
-            document.getElementById('clientMemo').value = client.memo || '';
-            
-            // カレンダーを今日にリセット
-            document.getElementById('memoDate').valueAsDate = new Date();
-            
-            renderTagSection(client);
-            renderProjectList(client);
-
-            document.getElementById('view-home').classList.remove('active');
-            document.getElementById('view-detail').classList.add('active');
-        }
-
-        // --- ホーム画面描画 ---
-        function renderClientList() {
-            const container = document.getElementById('clientList');
-            container.innerHTML = clients.map(client => {
-                const projectCount = client.projects.length;
-                const activeCount = client.projects.filter(p => !['accepted', 'rejected'].includes(p.status)).length;
-                
-                // タグのプレビュー生成（最大3つまで）
-                const tags = client.tags || [];
-                const tagsHtml = tags.slice(0, 4).map(t => `<span class="mini-tag">${t}</span>`).join('');
-                
-                return `
-                <div class="client-card" onclick="goDetail(${client.id})">
-                    <h3><i class="fas fa-building"></i> ${client.name}</h3>
-                    <div class="client-industry">${client.industry}</div>
-                    <div class="client-tags-preview">${tagsHtml}</div>
-                    <div class="client-stats">
-                        <span><i class="fas fa-file-alt"></i> 案件数: <b>${projectCount}</b></span>
-                        <span style="color:${activeCount > 0 ? 'var(--brand-orange)' : '#aaa'}">
-                            <i class="fas fa-sync-alt"></i> 進行中: <b>${activeCount}</b>
-                        </span>
-                    </div>
-                </div>
-                `;
-            }).join('');
-        }
-
-        // --- 詳細画面：タグエリア描画 ---
-        function renderTagSection(client) {
-            const container = document.getElementById('tagContainer');
-            const currentTags = client.tags || [];
-
-            container.innerHTML = HEARING_TAGS.map(tag => {
-                const isActive = currentTags.includes(tag);
-                return `<div class="check-tag ${isActive ? 'active' : ''}" 
-                             onclick="toggleTag('${tag}')">${tag}</div>`;
-            }).join('');
-        }
-
-        function toggleTag(tagName) {
-            const client = clients.find(c => c.id === currentClientId);
-            if (!client) return;
-            
-            if (!client.tags) client.tags = [];
-
-            if (client.tags.includes(tagName)) {
-                client.tags = client.tags.filter(t => t !== tagName);
-            } else {
-                client.tags.push(tagName);
-            }
-            
-            saveData();
-            renderTagSection(client); // 再描画
-        }
-
-        // --- 詳細画面：メモ機能 ---
-        document.getElementById('clientMemo').addEventListener('input', (e) => {
-            const val = e.target.value;
-            const statusEl = document.getElementById('memoStatus');
-            statusEl.style.display = 'none';
-
-            clearTimeout(memoTimeout);
-            memoTimeout = setTimeout(() => {
-                const client = clients.find(c => c.id === currentClientId);
-                if (client) {
-                    client.memo = val;
-                    saveData();
-                    statusEl.style.display = 'inline';
-                    statusEl.textContent = '保存しました';
-                    setTimeout(() => { statusEl.style.display = 'none'; }, 2000);
-                }
-            }, 1000);
-        });
-
-        // 日付挿入
-        function insertDate() {
-            const dateVal = document.getElementById('memoDate').value;
-            if(!dateVal) return;
-            
-            // 曜日計算
-            const d = new Date(dateVal);
-            const weekDays = ['日', '月', '火', '水', '木', '金', '土'];
-            const dayStr = weekDays[d.getDay()];
-            
-            // YYYY/MM/DD形式
-            const yyyy = d.getFullYear();
-            const mm = (d.getMonth() + 1).toString().padStart(2, '0');
-            const dd = d.getDate().toString().padStart(2, '0');
-            
-            const insertStr = `【${yyyy}/${mm}/${dd}(${dayStr})】\n`;
-            insertToTextarea(insertStr);
-        }
-
-        // テンプレート挿入
-        function insertTemplate(type) {
-            let textToInsert = "";
-
-            if (type === '現状') textToInsert = "■現状・課題\n・\n\n";
-            if (type === '提案') textToInsert = "■提案内容\n・\n\n";
-            if (type === 'Next') textToInsert = "■Next Action\n・\n\n";
-            if (type === '決定') textToInsert = "■決定事項\n・\n\n";
-
-            insertToTextarea(textToInsert);
-        }
-
-        // テキストエリアへの挿入共通処理
-        function insertToTextarea(textToInsert) {
-            const textarea = document.getElementById('clientMemo');
-            const startPos = textarea.selectionStart;
-            const endPos = textarea.selectionEnd;
-            const text = textarea.value;
-            
-            // 文末以外かつ直前が改行でないなら改行を入れる
-            if (startPos > 0 && text[startPos-1] !== '\n') {
-                textToInsert = "\n" + textToInsert;
-            }
-
-            textarea.value = text.substring(0, startPos) + textToInsert + text.substring(endPos);
-            
-            // カーソル位置を調整
-            textarea.selectionStart = textarea.selectionEnd = startPos + textToInsert.length;
-            textarea.focus();
-
-            // 保存をトリガー
-            textarea.dispatchEvent(new Event('input'));
-        }
-
-        // --- 詳細画面：案件リスト描画 ---
-        const statusMap = {
-            'hearing': { label: '提案中', class: 'bg-hearing', border: 'border-hearing' },
-            'preparing': { label: '準備中', class: 'bg-preparing', border: 'border-preparing' },
-            'applied': { label: '申請済', class: 'bg-applied', border: 'border-applied' },
-            'accepted': { label: '採択', class: 'bg-accepted', border: 'border-accepted' },
-            'rejected': { label: '不採択', class: 'bg-rejected', border: 'border-rejected' }
+        // --- 2. State Management ---
+        let state = {
+            step: 1,
+            answers: {
+                industry: '',
+                employees: '',
+                years: '',
+                issues: [],
+                scale: ''
+            },
+            filters: {
+                sort: 'match',
+                diff: 'all',
+                freq: 'all',
+                amount: 0
+            },
+            results: []
         };
 
-        function renderProjectList(client) {
-            const container = document.getElementById('projectList');
-            if (!client.projects || client.projects.length === 0) {
-                container.innerHTML = `<div style="text-align:center; padding:30px; color:#aaa;">案件がありません。<br>「案件を追加」ボタンから登録してください。</div>`;
-                return;
+        // --- 3. Initialization ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // Theme initialization
+            initTheme();
+
+            // Check localStorage
+            const savedState = localStorage.getItem('grantNavState');
+            if (savedState) {
+                try {
+                    const parsed = JSON.parse(savedState);
+                    if (parsed.answers) {
+                        state.answers = parsed.answers;
+                    }
+                } catch (e) {
+                    console.error("Failed to parse local storage", e);
+                }
             }
 
-            container.innerHTML = client.projects.map(p => {
-                const st = statusMap[p.status] || statusMap.hearing;
-                const amt = p.amount ? parseInt(p.amount).toLocaleString() + '円' : '-';
+            renderStep1();
+            renderStep2();
+            renderStep3();
+            updateUIState();
+        });
+
+        function saveState() {
+            localStorage.setItem('grantNavState', JSON.stringify(state));
+        }
+
+        // --- 4. Render Functions for Steps ---
+        function renderStep1() {
+            renderOptions('options-industry', configData.industries, 'industry', false);
+            renderOptions('options-employees', configData.employees, 'employees', false);
+            renderOptions('options-years', configData.years, 'years', false);
+            checkStep1Valid();
+        }
+
+        function renderStep2() {
+            renderOptions('options-issues', configData.issues, 'issues', true);
+            checkStep2Valid();
+        }
+
+        function renderStep3() {
+            renderOptions('options-scale', configData.scales, 'scale', false, true);
+            checkStep3Valid();
+        }
+
+        function renderOptions(containerId, options, stateKey, isMultiple = false, isList = false) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+
+            options.forEach(opt => {
+                const isSelected = isMultiple ? state.answers[stateKey].includes(opt) : state.answers[stateKey] === opt;
                 
-                return `
-                <div class="project-card ${st.border}">
-                    <div class="project-info">
-                        <div style="margin-bottom:8px;">
-                            <span class="project-status ${st.class}">${st.label}</span>
-                        </div>
-                        <h4>${p.name}</h4>
-                        <div class="project-meta">
-                            <span><i class="fas fa-yen-sign"></i> 投資額: ${amt}</span>
-                            <span><i class="far fa-calendar-alt"></i> 期限: ${p.deadline || '未定'}</span>
-                        </div>
-                    </div>
-                    <div>
-                        <button class="icon-btn delete" onclick="deleteProject(${p.id}, event)" title="削除">
-                            <i class="fas fa-trash-alt"></i>
-                        </button>
-                    </div>
-                </div>
-                `;
-            }).join('');
+                const div = document.createElement('div');
+                div.className = `selectable-card bg-gray-50 border border-gray-200 rounded-lg p-4 flex items-center justify-between ${isSelected ? 'selected' : ''}`;
+                
+                const textSpan = document.createElement('span');
+                textSpan.className = "text-sm font-bold " + (isSelected ? "text-app-main" : "text-gray-600");
+                textSpan.textContent = opt;
+                
+                const iconDiv = document.createElement('div');
+                iconDiv.className = `check-icon w-5 h-5 rounded-full border flex items-center justify-center transition-all ${isSelected ? 'border-app-accent bg-app-accent text-white' : 'border-gray-300'}`;
+                iconDiv.innerHTML = isSelected ? `<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>` : '';
+
+                div.appendChild(textSpan);
+                div.appendChild(iconDiv);
+
+                div.onclick = () => handleSelect(stateKey, opt, isMultiple, containerId);
+                container.appendChild(div);
+            });
         }
 
-        // --- クライアント追加・編集 ---
-        function openClientModal() {
-            // 新規作成モードで開く
-            document.getElementById('clientModalTitle').textContent = '新規クライアント登録';
-            document.getElementById('editClientId').value = '';
-            
-            // フォームクリア
-            document.getElementById('clientName').value = '';
-            document.getElementById('clientIndustry').value = '';
-            document.getElementById('clientCeo').value = '';
-            document.getElementById('clientAddress').value = '';
-            document.getElementById('clientPhone').value = '';
-            document.getElementById('clientEmployees').value = '';
-            document.getElementById('clientCapital').value = '';
-            document.getElementById('clientClosing').value = '';
-
-            document.getElementById('clientModal').classList.add('active');
-        }
-
-        function editClientInfo() {
-            // 編集モードで開く
-            const client = clients.find(c => c.id === currentClientId);
-            if (!client) return;
-
-            document.getElementById('clientModalTitle').textContent = '基本情報を編集';
-            document.getElementById('editClientId').value = client.id;
-            
-            // 値をセット
-            document.getElementById('clientName').value = client.name;
-            document.getElementById('clientIndustry').value = client.industry;
-            document.getElementById('clientCeo').value = client.ceo || '';
-            document.getElementById('clientAddress').value = client.address || '';
-            document.getElementById('clientPhone').value = client.phone || '';
-            document.getElementById('clientEmployees').value = client.employees || '';
-            document.getElementById('clientCapital').value = client.capital || '';
-            document.getElementById('clientClosing').value = client.closing || '';
-
-            document.getElementById('clientModal').classList.add('active');
-        }
-
-        function saveClient(e) {
-            e.preventDefault();
-            
-            const editId = document.getElementById('editClientId').value;
-            const name = document.getElementById('clientName').value;
-            const industry = document.getElementById('clientIndustry').value;
-            const ceo = document.getElementById('clientCeo').value;
-            const address = document.getElementById('clientAddress').value;
-            const phone = document.getElementById('clientPhone').value;
-            const employees = document.getElementById('clientEmployees').value;
-            const capital = document.getElementById('clientCapital').value;
-            const closing = document.getElementById('clientClosing').value;
-
-            if (editId) {
-                // 編集更新
-                const client = clients.find(c => c.id === parseInt(editId));
-                if (client) {
-                    client.name = name;
-                    client.industry = industry;
-                    client.ceo = ceo;
-                    client.address = address;
-                    client.phone = phone;
-                    client.employees = employees ? parseInt(employees) : '';
-                    client.capital = capital;
-                    client.closing = closing;
-                    
-                    // 詳細画面にいる場合は表示更新
-                    if (currentClientId === client.id) {
-                        goDetail(client.id);
-                    }
+        // --- 5. Interaction Handlers ---
+        function handleSelect(key, value, isMultiple, containerId) {
+            if (isMultiple) {
+                const idx = state.answers[key].indexOf(value);
+                if (idx > -1) {
+                    state.answers[key].splice(idx, 1);
+                } else {
+                    state.answers[key].push(value);
                 }
             } else {
-                // 新規作成
-                const newClient = {
-                    id: Date.now(),
-                    name: name,
-                    industry: industry,
-                    ceo: ceo,
-                    address: address,
-                    phone: phone,
-                    employees: employees ? parseInt(employees) : '',
-                    capital: capital,
-                    closing: closing,
-                    tags: [],
-                    memo: '',
-                    projects: []
-                };
-                clients.unshift(newClient);
+                state.answers[key] = value;
             }
+            saveState();
+            
+            // Re-render only the affected container for performance & visual feedback
+            if(key === 'industry') renderOptions('options-industry', configData.industries, 'industry', false);
+            if(key === 'employees') renderOptions('options-employees', configData.employees, 'employees', false);
+            if(key === 'years') renderOptions('options-years', configData.years, 'years', false);
+            if(key === 'issues') renderOptions('options-issues', configData.issues, 'issues', true);
+            if(key === 'scale') renderOptions('options-scale', configData.scales, 'scale', false, true);
 
-            saveData();
-            renderClientList();
-            closeModals();
+            checkStep1Valid();
+            checkStep2Valid();
+            checkStep3Valid();
         }
 
-        // --- 案件追加 ---
-        function openProjectModal() {
-            // デフォルト日付
-            document.getElementById('newProjectDeadline').valueAsDate = new Date();
-            document.getElementById('newProjectName').value = '';
-            document.getElementById('newProjectAmount').value = '';
-            document.getElementById('projectModal').classList.add('active');
+        function checkStep1Valid() {
+            const isValid = state.answers.industry && state.answers.employees && state.answers.years;
+            document.getElementById('btn-next-1').disabled = !isValid;
         }
 
-        function addProject(e) {
-            e.preventDefault();
-            const client = clients.find(c => c.id === currentClientId);
-            if (!client) return;
-
-            const newProject = {
-                id: Date.now(),
-                name: document.getElementById('newProjectName').value,
-                status: document.getElementById('newProjectStatus').value,
-                amount: document.getElementById('newProjectAmount').value,
-                deadline: document.getElementById('newProjectDeadline').value
-            };
-
-            if(!client.projects) client.projects = [];
-            client.projects.unshift(newProject);
-            saveData();
-            renderProjectList(client);
-            closeModals();
+        function checkStep2Valid() {
+            const isValid = state.answers.issues.length > 0;
+            document.getElementById('btn-next-2').disabled = !isValid;
         }
 
-        function deleteProject(projectId, event) {
-            event.stopPropagation();
-            if(!confirm('この案件を削除してもよろしいですか？')) return;
+        function checkStep3Valid() {
+            const isValid = !!state.answers.scale;
+            document.getElementById('btn-next-3').disabled = !isValid;
+        }
 
-            const client = clients.find(c => c.id === currentClientId);
-            if (client) {
-                client.projects = client.projects.filter(p => p.id !== projectId);
-                saveData();
-                renderProjectList(client);
+        function nextStep(step) {
+            state.step = step;
+            updateUIState();
+        }
+
+        function prevStep(step) {
+            state.step = step;
+            updateUIState();
+        }
+
+        function goToTop() {
+            if (state.step !== 1) {
+                state.step = 1;
+                updateUIState();
             }
         }
 
-        // 共通
-        function closeModals() {
-            document.querySelectorAll('.modal').forEach(m => m.classList.remove('active'));
+        function resetApp() {
+            if(confirm('入力内容をリセットして最初からやり直しますか？')) {
+                state.answers = { industry: '', employees: '', years: '', issues: [], scale: '' };
+                state.step = 1;
+                saveState();
+                renderStep1();
+                renderStep2();
+                renderStep3();
+                updateUIState();
+            }
         }
-        
+
+        function updateUIState() {
+            // Hide all steps
+            document.querySelectorAll('.step-section').forEach(el => {
+                el.classList.add('hidden');
+            });
+            
+            // Show current step
+            const currentEl = document.getElementById(`step-${state.step}`);
+            if(currentEl) {
+                currentEl.classList.remove('hidden');
+                // Scroll to top smoothly
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+
+            // Update Progress
+            const progressTexts = ["基本情報の入力", "課題の選択", "規模の選択", "マッチング結果"];
+            document.getElementById('progress-text').textContent = `STEP ${state.step} / 4`;
+            document.getElementById('progress-title').textContent = progressTexts[state.step - 1];
+            document.getElementById('progress-bar').style.width = `${(state.step / 4) * 100}%`;
+
+            // FAQ visibility
+            const faq = document.getElementById('faq-section');
+            if (state.step === 4) {
+                faq.classList.remove('hidden');
+            } else {
+                faq.classList.add('hidden');
+            }
+        }
+
+        // --- 6. Matching & Results Logic ---
+        function showResults() {
+            state.step = 4;
+            updateUIState();
+            runMatching();
+        }
+
+        function runMatching() {
+            const { industry, employees, issues } = state.answers;
+            
+            // Determine size based on employees (simplified logic)
+            let companySize = "中小企業";
+            if (employees === "1人（個人事業主）" || employees === "2〜5人") {
+                companySize = "小規模";
+            }
+
+            let scoredGrants = grantsData.map(grant => {
+                let score = 0;
+                let matchReasons = [];
+
+                // 1. Industry match
+                if (grant.industries.includes("全業種") || grant.industries.includes(industry)) {
+                    score += 10;
+                } else {
+                    score -= 100; // Must match industry
+                }
+
+                // 2. Scale match
+                if (grant.scales.includes("全規模") || grant.scales.includes(companySize)) {
+                    score += 10;
+                } else {
+                    score -= 50; // Size mismatch is a big negative
+                }
+
+                // 3. Issue match
+                let issueMatches = 0;
+                issues.forEach(issue => {
+                    if (grant.issues.includes(issue)) {
+                        issueMatches++;
+                        matchReasons.push(issue);
+                    }
+                });
+                
+                // Fallback for "その他" or generic catch-all if no specific issue matches but it's a general grant
+                if (issueMatches === 0 && grant.issues.includes("その他")) {
+                    issueMatches = 0.5;
+                }
+
+                score += (issueMatches * 20);
+
+                return { ...grant, matchScore: score, matchedIssues: matchReasons };
+            });
+
+            // Filter out severely mismatched grants (score < 0)
+            state.results = scoredGrants.filter(g => g.matchScore > 0);
+            
+            // Initial Sort by Score (Descending)
+            state.results.sort((a, b) => b.matchScore - a.matchScore);
+
+            applyFilters(true); // Render with default filters
+        }
+
+        function toggleMobileFilters() {
+            const filterDiv = document.getElementById('filter-options');
+            const chevron = document.getElementById('filter-chevron');
+            if (filterDiv.classList.contains('hidden')) {
+                filterDiv.classList.remove('hidden');
+                chevron.classList.add('rotate-180');
+            } else {
+                filterDiv.classList.add('hidden');
+                chevron.classList.remove('rotate-180');
+            }
+        }
+
+        function applyFilters(isInitial = false) {
+            const sortVal = document.getElementById('filter-sort').value;
+            const diffVal = document.getElementById('filter-diff').value;
+            const freqVal = document.getElementById('filter-freq').value;
+            const amountVal = parseInt(document.getElementById('filter-amount').value);
+
+            let filtered = [...state.results];
+
+            // Filter
+            if (diffVal !== 'all') {
+                if (diffVal === 'easy') filtered = filtered.filter(g => g.difficulty <= 2);
+                if (diffVal === 'normal') filtered = filtered.filter(g => g.difficulty === 3);
+            }
+            if (freqVal !== 'all') {
+                filtered = filtered.filter(g => g.frequency === freqVal);
+            }
+            if (amountVal > 0) {
+                filtered = filtered.filter(g => g.maxAmount >= amountVal);
+            }
+
+            // Sort
+            if (sortVal === 'match') {
+                filtered.sort((a, b) => b.matchScore - a.matchScore);
+            } else if (sortVal === 'amount_desc') {
+                filtered.sort((a, b) => b.maxAmount - a.maxAmount);
+            } else if (sortVal === 'diff_asc') {
+                filtered.sort((a, b) => a.difficulty - b.difficulty);
+            }
+
+            // Take top 6
+            const finalDisplay = filtered.slice(0, 6);
+            
+            renderResultsList(finalDisplay);
+            renderSupportMessage(finalDisplay.length, isInitial ? state.results.length : filtered.length);
+        }
+
+        function renderSupportMessage(displayCount, totalMatchedCount) {
+            const msgDiv = document.getElementById('support-message');
+            msgDiv.className = "p-4 rounded shadow-sm mb-6 text-sm font-bold border-l-4 ";
+            
+            if (displayCount === 0) {
+                msgDiv.className += "bg-orange-50 border-app-warning text-orange-800";
+                msgDiv.innerHTML = "条件に完全一致する補助金は見つかりませんでした。<br>条件（特に難易度や最低上限額の絞り込み）を少し変えると候補が見つかるかもしれません。または「戻る」ボタンで課題を選び直してみてください。";
+            } else if (displayCount <= 3) {
+                msgDiv.className += "bg-blue-50 border-blue-400 text-blue-800";
+                msgDiv.innerHTML = `現在の条件でマッチした補助金は ${displayCount}件 と少なめです。課題の選択肢を追加すると候補が増える可能性があります。`;
+            } else {
+                msgDiv.className += "bg-green-50 border-app-positive text-green-800";
+                msgDiv.innerHTML = `あなたの会社に合いそうな補助金が ${displayCount}件（全${totalMatchedCount}件中）見つかりました！まずは難易度の低いものから確認してみましょう。`;
+            }
+        }
+
+        function getStars(num) {
+            let stars = '';
+            for(let i=1; i<=5; i++) {
+                if(i <= num) stars += '<span class="text-app-warning">★</span>';
+                else stars += '<span class="text-gray-300">★</span>';
+            }
+            return stars;
+        }
+
+        function renderResultsList(grants) {
+            const container = document.getElementById('results-list');
+            container.innerHTML = '';
+
+            grants.forEach((grant, index) => {
+                const card = document.createElement('div');
+                card.className = "bg-white rounded-xl shadow-md p-6 border border-gray-100 flex flex-col h-full animate-slide-up hover:shadow-lg transition-shadow page-break";
+                card.style.animationDelay = `${index * 0.1}s`;
+
+                // Tags HTML
+                const tagsHtml = `
+                    <div class="flex flex-wrap gap-2 mb-3">
+                        <span class="bg-app-tag text-app-main text-xs px-2 py-1 rounded font-bold">${grant.industries.includes('全業種') ? '全業種OK' : grant.industries[0]}</span>
+                        <span class="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded">${grant.matchedIssues && grant.matchedIssues.length > 0 ? grant.matchedIssues[0] : grant.issues[0]}</span>
+                        <span class="bg-green-100 text-green-700 text-xs px-2 py-1 rounded">公募: ${grant.frequency}</span>
+                    </div>
+                `;
+
+                card.innerHTML = `
+                    ${tagsHtml}
+                    <h3 class="text-xl font-bold text-app-main mb-1">${grant.name}</h3>
+                    <p class="text-app-accent text-sm font-bold mb-4">${grant.catchphrase}</p>
+                    
+                    <div class="bg-gray-50 rounded p-3 mb-4 space-y-2 text-sm flex-grow">
+                        <div class="flex justify-between border-b border-gray-200 pb-1">
+                            <span class="text-gray-500">補助上限額</span>
+                            <span class="font-bold text-app-text">${grant.maxAmountText}</span>
+                        </div>
+                        <div class="flex justify-between border-b border-gray-200 pb-1">
+                            <span class="text-gray-500">補助率</span>
+                            <span class="font-bold text-app-text">${grant.rate}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">申請難易度</span>
+                            <span class="font-bold">${getStars(grant.difficulty)}</span>
+                        </div>
+                    </div>
+
+                    <button onclick="openDetailModal(${grant.id})" class="w-full bg-white border-2 border-app-main text-app-main font-bold py-2 px-4 rounded hover:bg-app-main hover:text-white transition-colors mt-auto no-print">
+                        詳しく見る
+                    </button>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // --- 7. Modal Logic ---
+        function openDetailModal(id) {
+            const grant = grantsData.find(g => g.id === id);
+            if(!grant) return;
+
+            const modal = document.getElementById('detail-modal');
+            const content = document.getElementById('modal-body');
+
+            const reqsHtml = grant.requirements.map(r => `<li class="ml-4 list-disc">${r}</li>`).join('');
+            const expHtml = grant.expenses.map(e => `<span class="inline-block bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded mr-1 mb-1">${e}</span>`).join('');
+
+            content.innerHTML = `
+                <div class="flex flex-wrap gap-2 mb-3">
+                    <span class="bg-app-tag text-app-main text-xs px-2 py-1 rounded font-bold">${grant.industries.includes('全業種') ? '全業種OK' : grant.industries[0]}</span>
+                    <span class="bg-green-100 text-green-700 text-xs px-2 py-1 rounded">公募: ${grant.frequency}</span>
+                    <span class="bg-yellow-100 text-yellow-700 text-xs px-2 py-1 rounded">難易度: ${getStars(grant.difficulty)}</span>
+                </div>
+                
+                <h2 class="text-2xl font-bold text-app-main mb-2">${grant.name}</h2>
+                <div class="flex gap-4 mb-6 text-sm">
+                    <div class="bg-blue-50 px-3 py-2 rounded border border-blue-100">
+                        <span class="block text-xs text-blue-500">補助上限額</span>
+                        <span class="font-bold">${grant.maxAmountText}</span>
+                    </div>
+                    <div class="bg-blue-50 px-3 py-2 rounded border border-blue-100">
+                        <span class="block text-xs text-blue-500">補助率</span>
+                        <span class="font-bold">${grant.rate}</span>
+                    </div>
+                </div>
+
+                <div class="space-y-5">
+                    <div>
+                        <h4 class="font-bold text-app-text border-b-2 border-app-accent pb-1 mb-2 inline-block">補助金の概要</h4>
+                        <p class="text-sm text-gray-700 leading-relaxed">${grant.description}</p>
+                    </div>
+
+                    <div>
+                        <h4 class="font-bold text-app-text border-b-2 border-app-accent pb-1 mb-2 inline-block">主な対象要件</h4>
+                        <ul class="text-sm text-gray-700 space-y-1">
+                            ${reqsHtml}
+                        </ul>
+                    </div>
+
+                    <div>
+                        <h4 class="font-bold text-app-text border-b-2 border-app-accent pb-1 mb-2 inline-block">対象経費の例</h4>
+                        <div class="mt-1">${expHtml}</div>
+                    </div>
+
+                    <div class="bg-orange-50 p-4 rounded-lg border border-orange-100">
+                        <h4 class="font-bold text-orange-800 mb-1 flex items-center gap-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
+                            注意点・落とし穴
+                        </h4>
+                        <p class="text-sm text-orange-700">${grant.pitfalls}</p>
+                    </div>
+                </div>
+
+                <div class="mt-8 flex flex-col sm:flex-row gap-3">
+                    <a href="${grant.url}" target="_blank" rel="noopener noreferrer" class="flex-1 bg-gray-100 text-gray-700 font-bold py-3 px-4 rounded text-center hover:bg-gray-200 transition-colors flex justify-center items-center gap-2">
+                        公式サイトを見る
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                    </a>
+                    <a href="mailto:consult@example.com?subject=${encodeURIComponent(grant.name)}について相談したい" class="flex-1 bg-app-accent text-white font-bold py-3 px-4 rounded text-center hover:bg-[#259b87] transition-colors flex justify-center items-center gap-2 shadow-md">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                        税理士に相談する
+                    </a>
+                </div>
+            `;
+
+            modal.classList.remove('hidden');
+            // Allow display block to render before changing opacity for animation
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                document.getElementById('detail-modal-content').classList.remove('scale-95');
+            }, 10);
+            document.body.style.overflow = 'hidden'; // Prevent background scrolling
+        }
+
+        function openProModal() {
+            const modal = document.getElementById('pro-modal');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modal.querySelector('div').classList.remove('scale-95');
+            }, 10);
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            modal.classList.add('opacity-0');
+            const content = modal.querySelector('div');
+            if(content) content.classList.add('scale-95');
+            
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                document.body.style.overflow = '';
+            }, 300);
+        }
+
+        // Close modal on outside click
         window.onclick = function(event) {
-            if (event.target.classList.contains('modal')) {
-                closeModals();
+            if (event.target.classList.contains('fixed')) {
+                closeModal(event.target.id);
+            }
+        }
+
+        // --- 8. Settings & Help Logic ---
+        function openHelpModal() {
+            const modal = document.getElementById('help-modal');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modal.querySelector('div').classList.remove('scale-95');
+            }, 10);
+            document.body.style.overflow = 'hidden';
+        }
+
+        function openSettingsModal() {
+            updateThemeButtons();
+            const modal = document.getElementById('settings-modal');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modal.querySelector('div').classList.remove('scale-95');
+            }, 10);
+            document.body.style.overflow = 'hidden';
+        }
+
+        function initTheme() {
+            if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        }
+
+        function setTheme(theme) {
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark');
+                localStorage.theme = 'dark';
+            } else {
+                document.documentElement.classList.remove('dark');
+                localStorage.theme = 'light';
+            }
+            updateThemeButtons();
+        }
+
+        function updateThemeButtons() {
+            const isDark = document.documentElement.classList.contains('dark');
+            const btnLight = document.getElementById('btn-theme-light');
+            const btnDark = document.getElementById('btn-theme-dark');
+            
+            if (isDark) {
+                btnDark.classList.add('bg-gray-200', 'border-gray-400', 'text-app-main');
+                btnDark.classList.remove('bg-gray-50');
+                btnLight.classList.remove('bg-gray-200', 'border-gray-400', 'text-app-main');
+                btnLight.classList.add('bg-gray-50');
+            } else {
+                btnLight.classList.add('bg-gray-200', 'border-gray-400', 'text-app-main');
+                btnLight.classList.remove('bg-gray-50');
+                btnDark.classList.remove('bg-gray-200', 'border-gray-400', 'text-app-main');
+                btnDark.classList.add('bg-gray-50');
+            }
+        }
+
+        function loadDemoData() {
+            state.answers = {
+                industry: 'IT・情報サービス',
+                employees: '6〜20人',
+                years: '3〜10年',
+                issues: ['ITシステムを導入したい', '販路を広げたい・新市場に挑戦したい', 'コスト削減・業務効率化をしたい'],
+                scale: '100〜500万円程度'
+            };
+            saveState();
+            closeModal('settings-modal');
+            showResults();
+        }
+
+        function clearData() {
+            if(confirm('すべての入力データをクリアしますか？')) {
+                state.answers = { industry: '', employees: '', years: '', issues: [], scale: '' };
+                state.step = 1;
+                saveState();
+                renderStep1();
+                renderStep2();
+                renderStep3();
+                updateUIState();
+                closeModal('settings-modal');
             }
         }
     </script>
