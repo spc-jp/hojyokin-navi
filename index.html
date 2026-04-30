@@ -57,6 +57,8 @@
                         'scan': 'scan 2s cubic-bezier(0.4, 0, 0.2, 1) infinite',
                         'coin-bounce': 'coinBounce 1.5s infinite',
                         'sparkle': 'sparkle 2s ease-in-out infinite',
+                        'pulse-fast': 'pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'typing': 'typing 2s steps(20, end) infinite'
                     },
                     keyframes: {
                         fadeIn: {
@@ -78,6 +80,10 @@
                         sparkle: {
                             '0%, 100%': { opacity: '0.3', transform: 'scale(0.8)' },
                             '50%': { opacity: '1', transform: 'scale(1.2)' },
+                        },
+                        typing: {
+                            '0%, 100%': { width: '0' },
+                            '50%': { width: '100%' }
                         }
                     }
                 }
@@ -113,14 +119,23 @@
         }
         
         /* AI Analysis List Style Override */
-        .ai-analysis-content ul {
+        .ai-analysis-content ul, .plan-content ul {
             list-style-type: disc;
             padding-left: 1.5rem;
             margin-top: 0.5rem;
             margin-bottom: 1rem;
         }
-        .ai-analysis-content p {
+        .ai-analysis-content p, .plan-content p {
             margin-bottom: 1rem;
+        }
+        .plan-content h4 {
+            font-weight: bold;
+            color: #1A3A5C;
+            border-bottom: 2px solid #2EB8A0;
+            padding-bottom: 4px;
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+            display: inline-block;
         }
         
         /* Step Indicator Custom Border for Dark mode */
@@ -133,12 +148,13 @@
         @media print {
             .no-print { display: none !important; }
             .print-only { display: block !important; }
-            body { background: white; font-size: 12pt; }
-            .container { max-width: 100%; padding: 0; }
+            body { background: white; font-size: 11pt; }
+            .container { max-width: 100%; padding: 0; margin: 0; }
             .shadow-sm, .shadow-md { box-shadow: none !important; border: 1px solid #e2e8f0; }
             .pro-zone { display: block !important; } 
             #results-list { grid-template-columns: 1fr; }
             .page-break { page-break-before: always; }
+            .break-inside-avoid { break-inside: avoid; }
         }
 
         /* Dark Mode Overrides */
@@ -159,6 +175,7 @@
         .dark .bg-orange-50 { background-color: rgba(124, 45, 18, 0.3); border-color: #7C2D12; color: #FDBA74; }
         .dark .text-orange-800, .dark .text-orange-700 { color: #FDBA74; }
         .dark .bg-gray-100 { background-color: #374151; color: #D1D5DB; }
+        .dark .plan-content h4 { color: #93C5FD; border-bottom-color: #2EB8A0; }
     </style>
 </head>
 <body class="bg-app-bg font-sans min-h-screen flex flex-col transition-colors duration-300">
@@ -191,76 +208,75 @@
         
         <!-- トライアルバナー -->
         <div id="trial-banner" class="w-full text-center py-2 text-sm font-bold shadow-md transition-colors duration-300 hidden cursor-pointer" onclick="handleBannerClick()">
-            <!-- 文言はJSで動的に挿入されます -->
         </div>
     </header>
 
     <main class="flex-grow container mx-auto px-4 py-8 max-w-4xl relative">
         
-        <!-- Step Progress Indicator -->
-        <div id="progress-container" class="mb-12 mt-4 no-print max-w-2xl mx-auto px-2 sm:px-8">
+        <!-- Step Progress Indicator (6 Steps) -->
+        <div id="progress-container" class="mb-12 mt-4 no-print max-w-3xl mx-auto px-1 sm:px-4">
             <div class="relative">
-                <!-- 背景の線 -->
-                <div class="absolute left-0 top-5 w-full h-1 bg-gray-200 dark:bg-gray-700 z-0 rounded"></div>
-                <!-- アクティブな線 -->
-                <div id="progress-line" class="absolute left-0 top-5 h-1 bg-app-accent z-0 transition-all duration-500 rounded" style="width: 0%"></div>
+                <div class="absolute left-0 top-4 w-full h-1 bg-gray-200 dark:bg-gray-700 z-0 rounded"></div>
+                <div id="progress-line" class="absolute left-0 top-4 h-1 bg-app-accent z-0 transition-all duration-500 rounded" style="width: 0%"></div>
                 
-                <!-- ステップアイコン -->
                 <div class="flex justify-between relative z-10">
-                    <div class="flex flex-col items-center step-indicator w-16" data-step="1">
-                        <div class="step-circle w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm border-4 border-app-bg transition-colors duration-300">1</div>
-                        <span class="step-text text-[10px] font-bold mt-2 whitespace-nowrap">基本情報</span>
+                    <div class="flex flex-col items-center step-indicator w-12 sm:w-16" data-step="1">
+                        <div class="step-circle w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-xs sm:text-sm border-4 border-app-bg transition-colors duration-300">1</div>
+                        <span class="step-text text-[9px] sm:text-[10px] font-bold mt-1 sm:mt-2 whitespace-nowrap hidden sm:block">基本情報</span>
                     </div>
-                    <div class="flex flex-col items-center step-indicator w-16" data-step="2">
-                        <div class="step-circle w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm border-4 border-app-bg transition-colors duration-300">2</div>
-                        <span class="step-text text-[10px] font-bold mt-2 whitespace-nowrap">課題選択</span>
+                    <div class="flex flex-col items-center step-indicator w-12 sm:w-16" data-step="2">
+                        <div class="step-circle w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-xs sm:text-sm border-4 border-app-bg transition-colors duration-300">2</div>
+                        <span class="step-text text-[9px] sm:text-[10px] font-bold mt-1 sm:mt-2 whitespace-nowrap hidden sm:block">課題選択</span>
                     </div>
-                    <div class="flex flex-col items-center step-indicator w-16" data-step="3">
-                        <div class="step-circle w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm border-4 border-app-bg transition-colors duration-300">3</div>
-                        <span class="step-text text-[10px] font-bold mt-2 whitespace-nowrap">規模選択</span>
+                    <div class="flex flex-col items-center step-indicator w-12 sm:w-16" data-step="3">
+                        <div class="step-circle w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-xs sm:text-sm border-4 border-app-bg transition-colors duration-300">3</div>
+                        <span class="step-text text-[9px] sm:text-[10px] font-bold mt-1 sm:mt-2 whitespace-nowrap hidden sm:block">規模選択</span>
                     </div>
-                    <div class="flex flex-col items-center step-indicator w-16" data-step="4">
-                        <div class="step-circle w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm border-4 border-app-bg transition-colors duration-300">4</div>
-                        <span class="step-text text-[10px] font-bold mt-2 whitespace-nowrap">分析・結果</span>
+                    <div class="flex flex-col items-center step-indicator w-12 sm:w-16" data-step="4">
+                        <div class="step-circle w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-xs sm:text-sm border-4 border-app-bg transition-colors duration-300">4</div>
+                        <span class="step-text text-[9px] sm:text-[10px] font-bold mt-1 sm:mt-2 whitespace-nowrap hidden sm:block">分析結果</span>
+                    </div>
+                    <div class="flex flex-col items-center step-indicator w-12 sm:w-16" data-step="5">
+                        <div class="step-circle w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-xs sm:text-sm border-4 border-app-bg transition-colors duration-300">5</div>
+                        <span class="step-text text-[9px] sm:text-[10px] font-bold mt-1 sm:mt-2 whitespace-nowrap hidden sm:block">追加質問</span>
+                    </div>
+                    <div class="flex flex-col items-center step-indicator w-12 sm:w-16" data-step="6">
+                        <div class="step-circle w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-xs sm:text-sm border-4 border-app-bg transition-colors duration-300">6</div>
+                        <span class="step-text text-[9px] sm:text-[10px] font-bold mt-1 sm:mt-2 whitespace-nowrap hidden sm:block">計画作成</span>
                     </div>
                 </div>
+            </div>
+            <!-- Mobile current step text -->
+            <div class="text-center mt-3 sm:hidden no-print">
+                <span id="mobile-step-text" class="text-xs font-bold text-app-main bg-blue-50 px-3 py-1 rounded-full dark:bg-gray-800 dark:text-blue-300">STEP 1: 基本情報の入力</span>
             </div>
         </div>
 
         <!-- ==================== STEP 1 ==================== -->
         <section id="step-1" class="step-section animate-fade-in">
             <h2 class="text-2xl font-bold text-app-text mb-6 text-center">あなたの会社について教えてください</h2>
-            
             <div class="space-y-8">
                 <div class="bg-white p-6 rounded-xl shadow-sm">
                     <h3 class="font-bold text-lg mb-4 flex items-center gap-2">
-                        <span class="bg-app-tag text-app-main px-2 py-1 rounded text-sm">必須</span>
-                        主な業種を選んでください
+                        <span class="bg-app-tag text-app-main px-2 py-1 rounded text-sm">必須</span>主な業種を選んでください
                     </h3>
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-3" id="options-industry"></div>
                 </div>
-
                 <div class="bg-white p-6 rounded-xl shadow-sm">
                     <h3 class="font-bold text-lg mb-4 flex items-center gap-2">
-                        <span class="bg-app-tag text-app-main px-2 py-1 rounded text-sm">必須</span>
-                        現在の従業員数
+                        <span class="bg-app-tag text-app-main px-2 py-1 rounded text-sm">必須</span>現在の従業員数
                     </h3>
                     <div class="grid grid-cols-2 md:grid-cols-5 gap-3" id="options-employees"></div>
                 </div>
-
                 <div class="bg-white p-6 rounded-xl shadow-sm">
                     <h3 class="font-bold text-lg mb-4 flex items-center gap-2">
-                        <span class="bg-app-tag text-app-main px-2 py-1 rounded text-sm">必須</span>
-                        創業からの年数
+                        <span class="bg-app-tag text-app-main px-2 py-1 rounded text-sm">必須</span>創業からの年数
                     </h3>
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-3" id="options-years"></div>
                 </div>
             </div>
-
             <div class="mt-8 flex justify-center">
-                <button onclick="nextStep(2)" id="btn-next-1" class="bg-app-main text-white font-bold py-3 px-12 rounded-full shadow-md hover:bg-[#122a44] transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-                    次へ進む
-                </button>
+                <button onclick="nextStep(2)" id="btn-next-1" class="bg-app-main text-white font-bold py-3 px-12 rounded-full shadow-md hover:bg-[#122a44] transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled>次へ進む</button>
             </div>
         </section>
 
@@ -268,37 +284,25 @@
         <section id="step-2" class="step-section hidden animate-fade-in">
             <h2 class="text-2xl font-bold text-app-text mb-2 text-center">今、どんな課題がありますか？</h2>
             <p class="text-center text-gray-500 mb-6">（複数選択OK・当てはまるものをすべて選んでください）</p>
-            
             <div class="bg-white p-6 rounded-xl shadow-sm">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="options-issues"></div>
             </div>
-
             <div class="mt-8 flex justify-between items-center max-w-md mx-auto">
-                <button onclick="prevStep(1)" class="text-app-main font-bold py-3 px-6 hover:underline">
-                    戻る
-                </button>
-                <button onclick="nextStep(3)" id="btn-next-2" class="bg-app-main text-white font-bold py-3 px-12 rounded-full shadow-md hover:bg-[#122a44] transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-                    次へ進む
-                </button>
+                <button onclick="prevStep(1)" class="text-app-main font-bold py-3 px-6 hover:underline">戻る</button>
+                <button onclick="nextStep(3)" id="btn-next-2" class="bg-app-main text-white font-bold py-3 px-12 rounded-full shadow-md hover:bg-[#122a44] transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled>次へ進む</button>
             </div>
         </section>
 
         <!-- ==================== STEP 3 ==================== -->
         <section id="step-3" class="step-section hidden animate-fade-in">
             <h2 class="text-2xl font-bold text-app-text mb-6 text-center">希望する補助金の規模感を教えてください</h2>
-            
             <div class="bg-white p-6 rounded-xl shadow-sm max-w-2xl mx-auto">
                 <div class="flex flex-col gap-3" id="options-scale"></div>
             </div>
-
             <div class="mt-8 flex justify-between items-center max-w-md mx-auto">
-                <button onclick="prevStep(2)" class="text-app-main font-bold py-3 px-6 hover:underline">
-                    戻る
-                </button>
+                <button onclick="prevStep(2)" class="text-app-main font-bold py-3 px-6 hover:underline">戻る</button>
                 <button onclick="showResults()" id="btn-next-3" class="bg-app-accent text-white font-bold py-3 px-10 rounded-full shadow-md hover:bg-[#259b87] transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
-                    </svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" /></svg>
                     結果を見る
                 </button>
             </div>
@@ -306,7 +310,6 @@
 
         <!-- ==================== STEP 4 (Results) ==================== -->
         <section id="step-4" class="step-section hidden animate-fade-in">
-            
             <!-- Controls Toolbar -->
             <div class="flex flex-wrap justify-between items-center mb-6 no-print gap-4">
                 <button onclick="resetApp()" class="text-gray-500 hover:text-app-main flex items-center gap-1 text-sm font-bold">
@@ -318,23 +321,22 @@
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
                         印刷する
                     </button>
-                    <button id="btn-pdf-save" onclick="saveAsPDF()" class="bg-app-main border border-app-main text-white font-bold py-2 px-4 rounded shadow-sm hover:bg-[#122a44] flex items-center gap-2 text-sm transition-colors">
+                    <button id="btn-pdf-save-results" onclick="saveAsPDF('step-4', 'btn-pdf-save-results', '補助金・分析結果レポート.pdf')" class="bg-app-main border border-app-main text-white font-bold py-2 px-4 rounded shadow-sm hover:bg-[#122a44] flex items-center gap-2 text-sm transition-colors">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                         PDF保存
                     </button>
                 </div>
             </div>
 
-            <!-- 印刷用タイトル（画面には表示されず、印刷・PDFにのみ出力されます） -->
             <div class="hidden print-only mb-6 text-center border-b-2 border-app-main pb-4">
                 <h1 class="text-2xl font-bold text-app-main">補助金マッチングナビ 検索・分析結果</h1>
             </div>
 
-            <!-- Support Message -->
             <div id="support-message" class="bg-white border-l-4 border-app-positive p-4 rounded shadow-sm mb-6 text-app-text font-bold break-inside-avoid"></div>
 
             <!-- Filters -->
             <div class="bg-white p-4 rounded-lg shadow-sm mb-8 no-print border border-gray-100" id="filter-container">
+                <!-- Filter content (same as before) -->
                 <div class="flex items-center justify-between cursor-pointer md:cursor-default" onclick="toggleMobileFilters()">
                     <h3 class="font-bold text-sm flex items-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-app-main" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
@@ -342,7 +344,6 @@
                     </h3>
                     <svg id="filter-chevron" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 md:hidden transition-transform" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
                 </div>
-                
                 <div id="filter-options" class="hidden md:grid grid-cols-1 md:grid-cols-4 gap-4 mt-4 pt-4 border-t border-gray-100">
                     <div>
                         <label class="block text-xs text-gray-500 mb-1">並び替え</label>
@@ -384,7 +385,121 @@
 
             <!-- AI Analysis Zone -->
             <div class="mt-16 pro-zone border-t-2 border-dashed border-gray-300 pt-12 hidden page-break"></div>
+            
+            <!-- ★ NEW: 次のステップ（事業計画書作成）への導線 -->
+            <div class="mt-16 text-center bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 p-8 rounded-xl shadow-sm no-print dark:from-gray-800 dark:to-gray-800 dark:border-gray-700" id="plan-cta-container" style="display: none;">
+                <span class="bg-app-main text-white text-xs font-bold px-3 py-1 rounded-full mb-3 inline-block">NEW FEATURE</span>
+                <h3 class="text-2xl font-bold text-app-main mb-3 dark:text-blue-300">書類作成の手間を大幅削減！</h3>
+                <p class="text-gray-600 dark:text-gray-400 mb-6 max-w-xl mx-auto text-sm leading-relaxed">
+                    申請に必要な「事業計画書」のたたき台（骨子）を、AIが自動で数千文字作成します。<br>
+                    3つの簡単な質問に答えるだけで、プロ品質のストーリー構成が完成します。
+                </p>
+                <button onclick="goToStep5()" class="bg-gradient-to-r from-app-main to-indigo-700 text-white font-bold py-4 px-10 rounded-full shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all flex items-center gap-3 mx-auto">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                    AIで事業計画書のたたき台を作成する
+                </button>
+            </div>
+        </section>
 
+        <!-- ==================== STEP 5 (追加質問) ==================== -->
+        <section id="step-5" class="step-section hidden animate-fade-in max-w-2xl mx-auto">
+            <h2 class="text-2xl font-bold text-app-text mb-2 text-center">事業計画書作成のための追加情報</h2>
+            <p class="text-center text-gray-500 mb-8 text-sm">以下の3つの質問に、思いつくままに自由に入力してください。</p>
+            
+            <div class="space-y-6">
+                <!-- Q1. 強み -->
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700">
+                    <h3 class="font-bold text-lg mb-2 text-app-main dark:text-blue-300 flex items-center gap-2">
+                        <span class="bg-blue-100 text-blue-800 w-6 h-6 rounded-full flex items-center justify-center text-sm">Q1</span>
+                        他社に負けない自社の「強み」は何ですか？
+                    </h3>
+                    <p class="text-xs text-gray-500 mb-3 ml-8">例：職人の高い技術力がある、長年の地元での信頼がある、独自の仕入れルートがある など</p>
+                    <textarea id="input-strength" rows="3" class="w-full border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-app-accent dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="自社の強みをご入力ください..."></textarea>
+                </div>
+
+                <!-- Q2. 具体的な取り組み -->
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700">
+                    <h3 class="font-bold text-lg mb-2 text-app-main dark:text-blue-300 flex items-center gap-2">
+                        <span class="bg-blue-100 text-blue-800 w-6 h-6 rounded-full flex items-center justify-center text-sm">Q2</span>
+                        具体的に「何」を購入・導入・開発したいですか？
+                    </h3>
+                    <p class="text-xs text-gray-500 mb-3 ml-8">例：最新の〇〇メーカーの加工機械を1台購入する、クラウド型の顧客管理システムを導入する など</p>
+                    <textarea id="input-action" rows="3" class="w-full border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-app-accent dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="具体的な取り組み内容をご入力ください..."></textarea>
+                </div>
+
+                <!-- Q3. 期待する効果 -->
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700">
+                    <h3 class="font-bold text-lg mb-2 text-app-main dark:text-blue-300 flex items-center gap-2">
+                        <span class="bg-blue-100 text-blue-800 w-6 h-6 rounded-full flex items-center justify-center text-sm">Q3</span>
+                        それを行うことで、どんな効果（目標）を期待しますか？
+                    </h3>
+                    <p class="text-xs text-gray-500 mb-3 ml-8">例：生産能力が2倍になり売上が〇%上がる、事務作業が月間〇時間減って残業代が減る など</p>
+                    <textarea id="input-effect" rows="3" class="w-full border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-app-accent dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="期待する効果や目標をご入力ください..."></textarea>
+                </div>
+            </div>
+
+            <div class="mt-8 flex justify-between items-center">
+                <button onclick="nextStep(4)" class="text-app-main font-bold py-3 px-6 hover:underline">結果画面に戻る</button>
+                <button onclick="generateBusinessPlan()" id="btn-generate-plan" class="bg-gradient-to-r from-app-main to-indigo-700 text-white font-bold py-3 px-10 rounded-full shadow-md hover:shadow-lg transition-all flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                    事業計画書を生成する
+                </button>
+            </div>
+        </section>
+
+        <!-- ==================== STEP 6 (計画書 出力) ==================== -->
+        <section id="step-6" class="step-section hidden animate-fade-in">
+            <!-- Controls Toolbar -->
+            <div class="flex flex-wrap justify-between items-center mb-6 no-print gap-4">
+                <button onclick="nextStep(4)" class="text-gray-500 hover:text-app-main flex items-center gap-1 text-sm font-bold">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+                    結果画面に戻る
+                </button>
+                <div class="flex gap-2" id="plan-toolbar" style="display: none;">
+                    <button onclick="copyPlanText()" id="copy-plan-btn" class="bg-white border border-gray-300 text-app-main font-bold py-2 px-4 rounded shadow-sm hover:bg-gray-50 flex items-center gap-2 text-sm transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                        テキストをコピー
+                    </button>
+                    <button id="btn-pdf-save-plan" onclick="saveAsPDF('plan-document', 'btn-pdf-save-plan', '事業計画書_骨子案.pdf')" class="bg-app-main border border-app-main text-white font-bold py-2 px-4 rounded shadow-sm hover:bg-[#122a44] flex items-center gap-2 text-sm transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                        PDF保存
+                    </button>
+                </div>
+            </div>
+
+            <!-- Loading UI for Plan -->
+            <div id="plan-loading" class="flex flex-col items-center justify-center py-20">
+                <div class="relative w-24 h-32 mb-8">
+                    <!-- 書類アイコン -->
+                    <svg class="w-full h-full text-gray-200 dark:text-gray-700" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/></svg>
+                    <!-- タイピングアニメーションの線 -->
+                    <div class="absolute top-8 left-4 w-16 h-1.5 bg-blue-400 rounded overflow-hidden"><div class="h-full bg-blue-600 animate-typing"></div></div>
+                    <div class="absolute top-12 left-4 w-12 h-1.5 bg-gray-400 rounded overflow-hidden" style="animation-delay: 0.2s;"><div class="h-full bg-gray-600 animate-typing"></div></div>
+                    <div class="absolute top-16 left-4 w-14 h-1.5 bg-gray-400 rounded overflow-hidden" style="animation-delay: 0.4s;"><div class="h-full bg-gray-600 animate-typing"></div></div>
+                    <div class="absolute top-20 left-4 w-10 h-1.5 bg-gray-400 rounded overflow-hidden" style="animation-delay: 0.6s;"><div class="h-full bg-gray-600 animate-typing"></div></div>
+                    <!-- ギアアイコン回転 -->
+                    <svg class="absolute -bottom-4 -right-4 w-12 h-12 text-app-accent animate-spin-slow drop-shadow-md" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                </div>
+                <h3 class="text-xl font-bold text-app-main mb-2 animate-pulse-fast">事業計画書を自動作成中...</h3>
+                <p class="text-sm text-gray-500 text-center">審査員を納得させる6つの柱のストーリーを構築しています。<br>（数十秒かかる場合があります）</p>
+            </div>
+
+            <!-- Generated Plan Document -->
+            <div id="plan-document" class="bg-white p-8 md:p-12 rounded-xl shadow-lg border border-gray-200 hidden dark:bg-gray-800 dark:border-gray-700 relative">
+                <div class="hidden print-only mb-6 text-center border-b-2 border-app-main pb-4">
+                    <h1 class="text-2xl font-bold text-app-main">事業計画書（骨子案）</h1>
+                </div>
+                <div id="plan-result-content" class="plan-content text-sm leading-relaxed text-gray-800 dark:text-gray-200">
+                    <!-- JSでAIの結果が挿入されます -->
+                </div>
+                
+                <div class="mt-12 pt-6 border-t border-gray-200 text-center no-print">
+                    <p class="text-sm text-gray-600 mb-4 font-bold">この計画書をベースに、専門家へ詳細な相談を行いましょう。</p>
+                    <a id="plan-mailto-btn" href="#" class="inline-block bg-app-accent text-white font-bold py-3 px-8 rounded-full shadow-md hover:bg-[#259b87] transition-colors">
+                        この内容で専門家に相談する
+                    </a>
+                </div>
+            </div>
         </section>
 
         <!-- FAQ Section -->
@@ -444,7 +559,7 @@
                     <h4 class="font-bold text-app-accent mb-2 border-b border-gray-200 pb-1">🎯 アプリの目的</h4>
                     <p class="text-sm text-gray-700 leading-relaxed dark:text-gray-300">
                         数ある補助金の中から、貴社の状況や課題に最も適したものをAIが分析・提案するナビゲーションツールです。<br>
-                        最適な補助金のピックアップだけでなく、採択の可能性を高めるための「具体的な申請戦略」を自動生成し、専門家へのスムーズなご相談をサポートします。
+                        最適な補助金のピックアップだけでなく、採択の可能性を高めるための「具体的な申請戦略」や「事業計画書」を自動生成し、専門家へのスムーズなご相談をサポートします。
                     </p>
                 </div>
                 
@@ -452,24 +567,16 @@
                     <h4 class="font-bold text-app-accent mb-3 border-b border-gray-200 pb-1">💡 アプリの使い方</h4>
                     <ol class="text-sm text-gray-700 dark:text-gray-300 space-y-4 list-decimal pl-4 marker:text-app-main marker:font-bold">
                         <li class="pl-1">
-                            <span class="font-bold text-app-main dark:text-blue-300">基本情報の入力（STEP 1）</span><br>
-                            <span class="inline-block mt-1 text-xs leading-relaxed">自社の「業種」「従業員数」「創業年数」を選択します。</span>
-                        </li>
-                        <li class="pl-1">
-                            <span class="font-bold text-app-main dark:text-blue-300">課題の選択（STEP 2）</span><br>
-                            <span class="inline-block mt-1 text-xs leading-relaxed">現在抱えている課題や、実現したい取り組みを選びます。（※複数選択可能です）</span>
-                        </li>
-                        <li class="pl-1">
-                            <span class="font-bold text-app-main dark:text-blue-300">希望規模の選択（STEP 3）</span><br>
-                            <span class="inline-block mt-1 text-xs leading-relaxed">希望する補助金額の規模感を選択し、「結果を見る」ボタンを押します。</span>
+                            <span class="font-bold text-app-main dark:text-blue-300">基本情報の入力（STEP 1〜3）</span><br>
+                            <span class="inline-block mt-1 text-xs leading-relaxed">自社の業種、課題、希望する補助金額の規模感を選択し、「結果を見る」ボタンを押します。</span>
                         </li>
                         <li class="pl-1">
                             <span class="font-bold text-app-main dark:text-blue-300">AI分析と結果の確認（STEP 4）</span><br>
-                            <span class="inline-block mt-1 text-xs leading-relaxed">AIが条件に合う補助金をリストアップし、貴社専用の「申請戦略」を提示します。</span>
+                            <span class="inline-block mt-1 text-xs leading-relaxed">AIが条件に合う補助金をリストアップし、貴社専用の「申請戦略」を提示します。検索結果は「PDF保存」でレポート化できます。</span>
                         </li>
                         <li class="pl-1">
-                            <span class="font-bold text-app-main dark:text-blue-300">詳細確認と専門家への相談</span><br>
-                            <span class="inline-block mt-1 text-xs leading-relaxed">気になる補助金の「詳しく見る」から要件等を確認できます。検索結果は「PDF保存」でレポート化できるほか、「専門家に相談する」ボタンから簡単に相談メールを作成できます。</span>
+                            <span class="font-bold text-app-main dark:text-blue-300">事業計画書の自動生成（STEP 5〜6）</span><br>
+                            <span class="inline-block mt-1 text-xs leading-relaxed">さらに踏み込みたい方は、STEP4下部のボタンから追加の質問（強みや具体的な取り組みなど）に答えることで、AIが本格的な「事業計画書の骨子」を全自動で作成します。</span>
                         </li>
                     </ol>
                 </div>
@@ -554,25 +661,11 @@
         const MAX_TRIAL_COUNT = 3;
 
         const configData = {
-            industries: [
-                "製造業", "建設業", "飲食・宿泊業", "小売業", 
-                "IT・情報サービス", "美容・理容", "医療・介護", "その他サービス業"
-            ],
-            employees: [
-                "1人（個人事業主）", "2〜5人", "6〜20人", "21〜50人", "51人以上"
-            ],
-            years: [
-                "創業1年未満", "1〜3年", "3〜10年", "10年以上"
-            ],
-            issues: [
-                "設備・機械を新しくしたい", "ITシステムを導入したい", "省エネ・脱炭素に取り組みたい", 
-                "新商品・新サービスを開発したい", "販路を広げたい・新市場に挑戦したい", "人材を採用・育成したい", 
-                "事業を引き継ぎたい・後継者問題がある", "海外展開を考えている", "コスト削減・業務効率化をしたい", "その他"
-            ],
-            scales: [
-                "100万円未満でも活用したい", "100〜500万円程度", "500万〜1,000万円程度", 
-                "1,000万円以上も視野に入れたい", "規模より採択率を重視したい"
-            ]
+            industries: ["製造業", "建設業", "飲食・宿泊業", "小売業", "IT・情報サービス", "美容・理容", "医療・介護", "その他サービス業"],
+            employees: ["1人（個人事業主）", "2〜5人", "6〜20人", "21〜50人", "51人以上"],
+            years: ["創業1年未満", "1〜3年", "3〜10年", "10年以上"],
+            issues: ["設備・機械を新しくしたい", "ITシステムを導入したい", "省エネ・脱炭素に取り組みたい", "新商品・新サービスを開発したい", "販路を広げたい・新市場に挑戦したい", "人材を採用・育成したい", "事業を引き継ぎたい・後継者問題がある", "海外展開を考えている", "コスト削減・業務効率化をしたい", "その他"],
+            scales: ["100万円未満でも活用したい", "100〜500万円程度", "500万〜1,000万円程度", "1,000万円以上も視野に入れたい", "規模より採択率を重視したい"]
         };
 
         // --- 2. State Management ---
@@ -580,26 +673,17 @@
             step: 1,
             usageCount: 0,
             isPremium: false,
-            expertInfo: {
-                name: '',
-                email: '',
-                phone: ''
-            },
-            answers: {
-                industry: '',
-                employees: '',
-                years: '',
-                issues: [],
-                scale: ''
-            },
+            expertInfo: { name: '', email: '', phone: '' },
+            answers: { industry: '', employees: '', years: '', issues: [], scale: '' },
+            planAnswers: { strength: '', action: '', effect: '' },
             filters: { sort: 'match', diff: 'all', freq: 'all', amount: 0 },
-            results: []
+            results: [],
+            generatedPlan: ''
         };
 
         // --- 3. Initialization ---
         document.addEventListener('DOMContentLoaded', () => {
             initTheme();
-
             const savedState = localStorage.getItem('grantNavState');
             if (savedState) {
                 try {
@@ -608,11 +692,8 @@
                     if (parsed.usageCount !== undefined) state.usageCount = parsed.usageCount;
                     if (parsed.isPremium !== undefined) state.isPremium = parsed.isPremium;
                     if (parsed.expertInfo) state.expertInfo = parsed.expertInfo;
-                } catch (e) {
-                    console.error("Failed to parse local storage", e);
-                }
+                } catch (e) {}
             }
-
             renderStep1();
             renderStep2();
             renderStep3();
@@ -627,12 +708,7 @@
         // --- Trial Logic ---
         function updateTrialBanner() {
             const banner = document.getElementById('trial-banner');
-            
-            if (state.isPremium) {
-                banner.classList.add('hidden');
-                return;
-            }
-
+            if (state.isPremium) { banner.classList.add('hidden'); return; }
             banner.classList.remove('hidden');
             
             if (state.usageCount === 0) {
@@ -651,9 +727,7 @@
             }
         }
 
-        function redirectToStripe() {
-            window.open(STRIPE_PAYMENT_URL, '_blank');
-        }
+        function redirectToStripe() { window.open(STRIPE_PAYMENT_URL, '_blank'); }
 
         function openLimitModal() {
             const modal = document.getElementById('limit-modal');
@@ -664,28 +738,19 @@
             }, 10);
         }
 
-        // --- 4. Render Functions for Steps ---
+        // --- 4. Render & Interaction (Step 1-3) ---
         function renderStep1() {
             renderOptions('options-industry', configData.industries, 'industry', false);
             renderOptions('options-employees', configData.employees, 'employees', false);
             renderOptions('options-years', configData.years, 'years', false);
             checkStep1Valid();
         }
-
-        function renderStep2() {
-            renderOptions('options-issues', configData.issues, 'issues', true);
-            checkStep2Valid();
-        }
-
-        function renderStep3() {
-            renderOptions('options-scale', configData.scales, 'scale', false, true);
-            checkStep3Valid();
-        }
+        function renderStep2() { renderOptions('options-issues', configData.issues, 'issues', true); checkStep2Valid(); }
+        function renderStep3() { renderOptions('options-scale', configData.scales, 'scale', false, true); checkStep3Valid(); }
 
         function renderOptions(containerId, options, stateKey, isMultiple = false) {
             const container = document.getElementById(containerId);
             container.innerHTML = '';
-
             options.forEach(opt => {
                 const isSelected = isMultiple ? state.answers[stateKey].includes(opt) : state.answers[stateKey] === opt;
                 const div = document.createElement('div');
@@ -706,15 +771,12 @@
             });
         }
 
-        // --- 5. Interaction Handlers ---
         function handleSelect(key, value, isMultiple, containerId) {
             if (isMultiple) {
                 const idx = state.answers[key].indexOf(value);
                 if (idx > -1) state.answers[key].splice(idx, 1);
                 else state.answers[key].push(value);
-            } else {
-                state.answers[key] = value;
-            }
+            } else { state.answers[key] = value; }
             saveState();
             
             if(key === 'industry') renderOptions('options-industry', configData.industries, 'industry', false);
@@ -723,52 +785,42 @@
             if(key === 'issues') renderOptions('options-issues', configData.issues, 'issues', true);
             if(key === 'scale') renderOptions('options-scale', configData.scales, 'scale', false, true);
 
-            checkStep1Valid();
-            checkStep2Valid();
-            checkStep3Valid();
+            checkStep1Valid(); checkStep2Valid(); checkStep3Valid();
         }
 
-        function checkStep1Valid() {
-            document.getElementById('btn-next-1').disabled = !(state.answers.industry && state.answers.employees && state.answers.years);
-        }
+        function checkStep1Valid() { document.getElementById('btn-next-1').disabled = !(state.answers.industry && state.answers.employees && state.answers.years); }
+        function checkStep2Valid() { document.getElementById('btn-next-2').disabled = !(state.answers.issues.length > 0); }
+        function checkStep3Valid() { document.getElementById('btn-next-3').disabled = !state.answers.scale; }
 
-        function checkStep2Valid() {
-            document.getElementById('btn-next-2').disabled = !(state.answers.issues.length > 0);
-        }
+        function nextStep(step) { state.step = step; updateUIState(); }
+        function prevStep(step) { state.step = step; updateUIState(); }
+        function goToTop() { if (state.step !== 1) { state.step = 1; updateUIState(); } }
 
-        function checkStep3Valid() {
-            document.getElementById('btn-next-3').disabled = !state.answers.scale;
-        }
-
-        function nextStep(step) {
-            state.step = step;
-            updateUIState();
-        }
-
-        function prevStep(step) {
-            state.step = step;
-            updateUIState();
-        }
-
-        function goToTop() {
-            if (state.step !== 1) {
-                state.step = 1;
-                updateUIState();
+        function goToStep5() {
+            if (!state.isPremium && state.usageCount >= MAX_TRIAL_COUNT) {
+                openLimitModal(); return;
             }
+            state.step = 5;
+            updateUIState();
         }
 
         function resetApp() {
             if(confirm('入力内容をリセットして最初からやり直しますか？')) {
                 state.answers = { industry: '', employees: '', years: '', issues: [], scale: '' };
+                state.planAnswers = { strength: '', action: '', effect: '' };
                 state.step = 1;
                 state.results = [];
+                state.generatedPlan = '';
                 saveState();
-                renderStep1();
-                renderStep2();
-                renderStep3();
+                renderStep1(); renderStep2(); renderStep3();
                 updateUIState();
+                
+                document.getElementById('input-strength').value = '';
+                document.getElementById('input-action').value = '';
+                document.getElementById('input-effect').value = '';
                 const proZone = document.querySelector('.pro-zone');
                 if (proZone) proZone.style.display = 'none';
+                document.getElementById('plan-cta-container').style.display = 'none';
             }
         }
 
@@ -781,14 +833,17 @@
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             }
 
-            // Update Progress Indicator
+            // Update Progress Indicator (6 Steps)
             const progressLine = document.getElementById('progress-line');
             const stepIndicators = document.querySelectorAll('.step-indicator');
-            const percentages = [0, 0, 33.33, 66.66, 100];
+            // percentages for 6 steps: 0, 20, 40, 60, 80, 100
+            const percentages = [0, 0, 20, 40, 60, 80, 100];
+            const mobileTexts = ["", "STEP 1: 基本情報の入力", "STEP 2: 課題の選択", "STEP 3: 規模の選択", "STEP 4: 分析と検索結果", "STEP 5: 追加質問の入力", "STEP 6: 計画書の作成"];
             
-            if(progressLine) {
-                progressLine.style.width = `${percentages[state.step]}%`;
-            }
+            if(progressLine) progressLine.style.width = `${percentages[state.step]}%`;
+            
+            const mobileTextEl = document.getElementById('mobile-step-text');
+            if(mobileTextEl) mobileTextEl.textContent = mobileTexts[state.step];
 
             stepIndicators.forEach((indicator, index) => {
                 const stepNum = index + 1;
@@ -796,32 +851,30 @@
                 const text = indicator.querySelector('.step-text');
                 
                 if (stepNum < state.step) {
-                    circle.className = "step-circle w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm bg-app-accent text-white border-4 border-app-bg transition-colors duration-300 z-10";
-                    circle.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>';
-                    text.className = "step-text text-[10px] font-bold mt-2 text-app-accent whitespace-nowrap";
+                    circle.className = "step-circle w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-xs sm:text-sm bg-app-accent text-white border-4 border-app-bg transition-colors duration-300 z-10";
+                    circle.innerHTML = '<svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>';
+                    text.className = "step-text text-[9px] sm:text-[10px] font-bold mt-1 sm:mt-2 text-app-accent whitespace-nowrap hidden sm:block";
                 } else if (stepNum === state.step) {
-                    circle.className = "step-circle w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm bg-app-main text-white border-4 border-app-bg transition-colors duration-300 ring-2 ring-app-main ring-offset-2 ring-offset-app-bg z-10 relative";
+                    circle.className = "step-circle w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-xs sm:text-sm bg-app-main text-white border-4 border-app-bg transition-colors duration-300 ring-2 ring-app-main ring-offset-2 ring-offset-app-bg z-10 relative";
                     circle.innerHTML = stepNum;
-                    text.className = "step-text text-[10px] font-bold mt-2 text-app-main whitespace-nowrap";
+                    text.className = "step-text text-[9px] sm:text-[10px] font-bold mt-1 sm:mt-2 text-app-main whitespace-nowrap hidden sm:block";
                 } else {
-                    circle.className = "step-circle w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm bg-gray-200 text-gray-500 border-4 border-app-bg transition-colors duration-300 dark:bg-gray-700 dark:text-gray-400 dark:border-gray-900 z-10";
+                    circle.className = "step-circle w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-xs sm:text-sm bg-gray-200 text-gray-500 border-4 border-app-bg transition-colors duration-300 dark:bg-gray-700 dark:text-gray-400 dark:border-gray-900 z-10";
                     circle.innerHTML = stepNum;
-                    text.className = "step-text text-[10px] font-bold mt-2 text-gray-400 dark:text-gray-500 whitespace-nowrap";
+                    text.className = "step-text text-[9px] sm:text-[10px] font-bold mt-1 sm:mt-2 text-gray-400 dark:text-gray-500 whitespace-nowrap hidden sm:block";
                 }
             });
 
             const faq = document.getElementById('faq-section');
-            if (state.step === 4) faq.classList.remove('hidden');
+            if (state.step === 4 || state.step === 6) faq.classList.remove('hidden');
             else faq.classList.add('hidden');
         }
 
         // --- 6. API Matching & Results Logic ---
         async function showResults() {
             if (!state.isPremium && state.usageCount >= MAX_TRIAL_COUNT) {
-                openLimitModal();
-                return;
+                openLimitModal(); return;
             }
-
             state.step = 4;
             updateUIState();
             await runMatching();
@@ -832,8 +885,8 @@
             const msgDiv = document.getElementById('support-message');
             const filterDiv = document.getElementById('filter-container');
             const proZone = document.querySelector('.pro-zone');
+            const ctaContainer = document.getElementById('plan-cta-container');
 
-            // リッチなローディングアニメーション表示
             container.innerHTML = `
                 <div class="col-span-1 md:col-span-2 flex flex-col items-center justify-center py-16 text-gray-500">
                     <div class="relative w-32 h-32 mb-6">
@@ -852,6 +905,7 @@
             msgDiv.className = "hidden";
             if(filterDiv) filterDiv.style.display = 'none';
             if(proZone) proZone.style.display = 'none';
+            if(ctaContainer) ctaContainer.style.display = 'none';
 
             try {
                 const response = await fetch(WORKER_URL, {
@@ -861,7 +915,6 @@
                 });
 
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-
                 const data = await response.json();
                 
                 if (!state.isPremium) {
@@ -871,15 +924,11 @@
                 }
 
                 if(data.grants && Array.isArray(data.grants)){
-                    state.results = data.grants.map((grant, index) => ({
-                        ...grant,
-                        matchScore: 100 - index 
-                    }));
+                    state.results = data.grants.map((grant, index) => ({ ...grant, matchScore: 100 - index }));
                 } else {
                     state.results = Array.isArray(data) ? data.map((g, i) => ({...g, matchScore: 100 - i})) : [];
                 }
 
-                // AIの分析結果を画面下部に表示
                 if (proZone && data.analysis) {
                     const email = state.expertInfo.email || 'consult@example.com';
                     const expertName = state.expertInfo.name || '';
@@ -897,15 +946,12 @@
                             <p class="text-gray-600 dark:text-gray-400">入力いただいた情報に基づく、あなたの会社への具体的なアドバイスです。</p>
                         </div>
                         
-                        <!-- ★ コピー機能付きの分析コンテナ -->
                         <div class="relative bg-blue-50 border border-blue-200 p-6 md:p-8 rounded-xl text-app-text dark:bg-blue-900/30 dark:border-blue-800 dark:text-blue-100 leading-relaxed text-sm shadow-md animate-fade-in break-inside-avoid">
                             <button id="copy-btn" onclick="copyAnalysisText()" class="no-print absolute top-3 right-4 bg-white text-app-main border border-blue-200 hover:bg-blue-100 text-xs font-bold py-1.5 px-3 rounded shadow-sm transition-colors flex items-center gap-1 dark:bg-gray-800 dark:border-gray-600 dark:text-blue-300">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
                                 コピー
                             </button>
-                            <div id="ai-analysis-text" class="ai-analysis-content mt-2">
-                                ${data.analysis}
-                            </div>
+                            <div id="ai-analysis-text" class="ai-analysis-content mt-2">${data.analysis}</div>
                         </div>
                         
                         <div class="mt-6 text-center no-print">
@@ -919,6 +965,7 @@
 
                 msgDiv.classList.remove('hidden');
                 if(filterDiv) filterDiv.style.display = '';
+                if(ctaContainer) ctaContainer.style.display = 'block';
                 
                 applyFilters(true);
 
@@ -935,27 +982,89 @@
                 `;
             }
         }
-        
-        // --- ★ AI分析テキストのコピー機能 ---
-        function copyAnalysisText() {
-            const textElement = document.getElementById('ai-analysis-text');
-            if (!textElement) return;
+
+        // --- STEP 6 (Business Plan Generator Mock) ---
+        async function generateBusinessPlan() {
+            // Save inputs
+            state.planAnswers.strength = document.getElementById('input-strength').value;
+            state.planAnswers.action = document.getElementById('input-action').value;
+            state.planAnswers.effect = document.getElementById('input-effect').value;
             
-            const text = textElement.innerText;
-            const btn = document.getElementById('copy-btn');
+            state.step = 6;
+            updateUIState();
+            
+            const loadingEl = document.getElementById('plan-loading');
+            const docEl = document.getElementById('plan-document');
+            const contentEl = document.getElementById('plan-result-content');
+            const toolbarEl = document.getElementById('plan-toolbar');
+            const mailBtn = document.getElementById('plan-mailto-btn');
+
+            loadingEl.style.display = 'flex';
+            docEl.style.display = 'none';
+            toolbarEl.style.display = 'none';
+
+            // ★ ここは現在モック（ダミー）です。将来的にWorkerを拡張してAPI連携させます。
+            setTimeout(() => {
+                const ind = state.answers.industry || '当社';
+                const str = state.planAnswers.strength || '長年培ってきた実績と独自のノウハウ';
+                const act = state.planAnswers.action || '最新のシステム・設備の導入';
+                const eff = state.planAnswers.effect || '業務効率の大幅な改善と新規顧客の獲得';
+                const iss = state.answers.issues.length > 0 ? state.answers.issues[0] : '既存の課題解決';
+
+                // ダミーの事業計画書テキスト（6つの柱）
+                const dummyPlan = `
+                    <h4>1. 企業概要と自社の強み</h4>
+                    <p>${ind}において事業を展開する当社は、「${str}」を最大の強みとしております。これにより、既存顧客から高い信頼を得ており、安定した事業基盤を構築しています。</p>
+                    
+                    <h4>2. 市場動向とターゲットのニーズ</h4>
+                    <p>近年の市場環境の変化に伴い、顧客のニーズはますます多様化・高度化しています。特に当社がターゲットとする市場においては、より迅速かつ高品質なサービスの提供が求められており、この需要に応えることが今後の成長の鍵となります。</p>
+                    
+                    <h4>3. 現状の課題と本事業の目的</h4>
+                    <p>当社は現在、「${iss}」という課題に直面しています。既存の体制や設備では生産性（またはサービス品質）に限界があり、機会損失が発生しています。本事業は、この課題を根本から解決し、持続的な成長を実現することを目的としています。</p>
+                    
+                    <h4>4. 具体的な取り組み内容（補助事業の内容）</h4>
+                    <p>上記の課題を解決するため、本事業において「${act}」を実施します。具体的には、最新モデルを導入し、既存の業務フローに組み込むことで、抜本的な体制強化を図ります。この投資により、当社の強みをさらに活かせる環境が整います。</p>
+                    
+                    <h4>5. 期待される効果（事業の成果）</h4>
+                    <p>本事業の実施により、「${eff}」という直接的な効果が期待できます。定量的には、実施後1年間で生産能力が約〇%向上（またはコストが約〇%削減）し、それに伴い売上・利益水準の大幅な向上が見込まれます。</p>
+                    
+                    <h4>6. スケジュールと資金計画</h4>
+                    <p>補助金交付決定後、速やかに発注を行い、約2ヶ月間で導入・初期設定を完了させます。その後テスト運用を経て本格稼働を開始します。必要な資金については、自己資金および〇〇銀行からの借入、そして本補助金を充当することで確実に実行可能な計画となっております。</p>
+                    
+                    <div class="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400">
+                        ※この文章はモック（ダミーデータ）です。Cloudflare Worker側で新しいプロンプトを設定することで、AIによる本格的な事業計画書を生成できるようになります。
+                    </div>
+                `;
+
+                contentEl.innerHTML = dummyPlan;
+                
+                // メールボタンの設定
+                const email = state.expertInfo.email || 'consult@example.com';
+                mailBtn.href = `mailto:${email}?subject=事業計画書（案）の確認とご相談&body=事業計画書のたたき台を作成しましたので、ご確認とご相談をお願いいたします。`;
+
+                loadingEl.style.display = 'none';
+                docEl.style.display = 'block';
+                toolbarEl.style.display = 'flex';
+                state.generatedPlan = document.getElementById('plan-result-content').innerText;
+            }, 2500); // 2.5秒後に表示
+        }
+        
+        function copyPlanText() {
+            const text = state.generatedPlan;
+            if(!text) return;
+            const btn = document.getElementById('copy-plan-btn');
             const originalHtml = btn.innerHTML;
 
-            // iframe環境（プレビュー）でも確実に動作するレガシーコピー方式を使用
             const textArea = document.createElement("textarea");
             textArea.value = text;
             textArea.style.position = "fixed";
             textArea.style.left = "-9999px";
             document.body.appendChild(textArea);
-            textArea.focus();
-            textArea.select();
+            textArea.focus(); textArea.select();
             try {
                 document.execCommand('copy');
-                showCopySuccess(btn, originalHtml);
+                btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-app-positive" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg><span class="text-app-positive">コピーしました</span>`;
+                setTimeout(() => { btn.innerHTML = originalHtml; }, 2000);
             } catch (err) {
                 console.error('Copy failed:', err);
                 btn.innerHTML = 'コピー失敗';
@@ -964,14 +1073,30 @@
             document.body.removeChild(textArea);
         }
 
-        function showCopySuccess(btn, originalHtml) {
-            btn.innerHTML = `
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-app-positive" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-                <span class="text-app-positive">コピーしました！</span>
-            `;
-            setTimeout(() => {
-                btn.innerHTML = originalHtml;
-            }, 2000);
+        // --- Copy & PDF Logic ---
+        function copyAnalysisText() {
+            const textElement = document.getElementById('ai-analysis-text');
+            if (!textElement) return;
+            const text = textElement.innerText;
+            const btn = document.getElementById('copy-btn');
+            const originalHtml = btn.innerHTML;
+
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed";
+            textArea.style.left = "-9999px";
+            document.body.appendChild(textArea);
+            textArea.focus(); textArea.select();
+            try {
+                document.execCommand('copy');
+                btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-app-positive" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg><span class="text-app-positive">コピーしました！</span>`;
+                setTimeout(() => { btn.innerHTML = originalHtml; }, 2000);
+            } catch (err) {
+                console.error('Copy failed:', err);
+                btn.innerHTML = 'コピー失敗';
+                setTimeout(() => { btn.innerHTML = originalHtml; }, 2000);
+            }
+            document.body.removeChild(textArea);
         }
 
         function toggleMobileFilters() {
@@ -986,7 +1111,6 @@
             const diffVal = document.getElementById('filter-diff').value;
             const freqVal = document.getElementById('filter-freq').value;
             const amountVal = parseInt(document.getElementById('filter-amount').value);
-
             let filtered = [...state.results];
 
             if (diffVal !== 'all') {
@@ -1005,17 +1129,13 @@
             renderSupportMessage(finalDisplay.length, isInitial ? state.results.length : filtered.length);
         }
 
-        // --- ★ PDF Save Logic (改ページの最適化) ---
-        function saveAsPDF() {
-            const element = document.getElementById('step-4');
-            const btn = document.getElementById('btn-pdf-save');
+        function saveAsPDF(targetId, btnId, fileName) {
+            const element = document.getElementById(targetId);
+            const btn = document.getElementById(btnId);
             const originalText = btn.innerHTML;
             
             btn.innerHTML = `
-                <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
+                <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                 PDF生成中...
             `;
             btn.disabled = true;
@@ -1035,7 +1155,7 @@
 
             const opt = {
                 margin:       [10, 10, 10, 10],
-                filename:     '補助金・申請戦略レポート.pdf',
+                filename:     fileName,
                 image:        { type: 'jpeg', quality: 0.98 },
                 html2canvas:  { scale: 2, useCORS: true },
                 jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
@@ -1045,23 +1165,15 @@
             setTimeout(() => {
                 html2pdf().set(opt).from(element).save().then(() => {
                     noPrintElements.forEach(el => el.classList.remove('pdf-hidden'));
-                    printOnlyElements.forEach(el => {
-                        el.classList.add('hidden');
-                        el.classList.remove('pdf-show');
-                    });
+                    printOnlyElements.forEach(el => { el.classList.add('hidden'); el.classList.remove('pdf-show'); });
                     document.head.removeChild(style);
-                    btn.innerHTML = originalText;
-                    btn.disabled = false;
+                    btn.innerHTML = originalText; btn.disabled = false;
                 }).catch(err => {
-                    console.error('PDF generation error:', err);
+                    console.error('PDF error:', err);
                     noPrintElements.forEach(el => el.classList.remove('pdf-hidden'));
-                    printOnlyElements.forEach(el => {
-                        el.classList.add('hidden');
-                        el.classList.remove('pdf-show');
-                    });
+                    printOnlyElements.forEach(el => { el.classList.add('hidden'); el.classList.remove('pdf-show'); });
                     document.head.removeChild(style);
-                    btn.innerHTML = originalText;
-                    btn.disabled = false;
+                    btn.innerHTML = originalText; btn.disabled = false;
                     alert('PDFの作成に失敗しました。');
                 });
             }, 100);
@@ -1070,7 +1182,6 @@
         function renderSupportMessage(displayCount, totalMatchedCount) {
             const msgDiv = document.getElementById('support-message');
             msgDiv.className = "p-4 rounded shadow-sm mb-6 text-sm font-bold border-l-4 break-inside-avoid";
-            
             if (displayCount === 0) {
                 msgDiv.className += " bg-orange-50 border-app-warning text-orange-800 dark:bg-orange-900/30 dark:text-orange-300";
                 msgDiv.innerHTML = "条件に完全一致する補助金は見つかりませんでした。<br>条件を変えると候補が見つかるかもしれません。";
@@ -1096,17 +1207,13 @@
         function renderResultsList(grants) {
             const container = document.getElementById('results-list');
             container.innerHTML = '';
-
             grants.forEach((grant, index) => {
                 const card = document.createElement('div');
-                // ★ カードに break-inside-avoid を追加し、PDF保存時に途中で真っ二つに切れるのを防止
                 card.className = "bg-white rounded-xl shadow-md p-6 border border-gray-100 flex flex-col h-full animate-slide-up hover:shadow-lg transition-shadow break-inside-avoid";
                 card.style.animationDelay = `${index * 0.1}s`;
-
                 const industries = grant.industries || ['全業種'];
                 const issues = grant.issues || ['その他'];
                 const frequency = grant.frequency || '随時';
-
                 card.innerHTML = `
                     <div class="flex flex-wrap gap-2 mb-3">
                         <span class="bg-app-tag text-app-main text-xs px-2 py-1 rounded font-bold">${industries.includes('全業種') ? '全業種OK' : industries[0]}</span>
@@ -1115,17 +1222,10 @@
                     </div>
                     <h3 class="text-xl font-bold text-app-main mb-1">${grant.name || '補助金名'}</h3>
                     <p class="text-app-accent text-sm font-bold mb-4">${grant.catchphrase || ''}</p>
-                    
                     <div class="bg-gray-50 rounded p-3 mb-4 space-y-2 text-sm flex-grow">
-                        <div class="flex justify-between border-b border-gray-200 pb-1">
-                            <span class="text-gray-500">補助上限額</span><span class="font-bold text-app-text">${grant.maxAmountText || '-'}</span>
-                        </div>
-                        <div class="flex justify-between border-b border-gray-200 pb-1">
-                            <span class="text-gray-500">補助率</span><span class="font-bold text-app-text">${grant.rate || '-'}</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-500">申請難易度</span><span class="font-bold">${getStars(grant.difficulty)}</span>
-                        </div>
+                        <div class="flex justify-between border-b border-gray-200 pb-1"><span class="text-gray-500">補助上限額</span><span class="font-bold text-app-text">${grant.maxAmountText || '-'}</span></div>
+                        <div class="flex justify-between border-b border-gray-200 pb-1"><span class="text-gray-500">補助率</span><span class="font-bold text-app-text">${grant.rate || '-'}</span></div>
+                        <div class="flex justify-between"><span class="text-gray-500">申請難易度</span><span class="font-bold">${getStars(grant.difficulty)}</span></div>
                     </div>
                     <button onclick='openDetailModal(${JSON.stringify(grant).replace(/'/g, "&apos;")})' class="w-full bg-white border-2 border-app-main text-app-main font-bold py-2 px-4 rounded hover:bg-app-main hover:text-white transition-colors mt-auto no-print">詳しく見る</button>
                 `;
@@ -1137,19 +1237,14 @@
         function openDetailModal(grant) {
             const modal = document.getElementById('detail-modal');
             const content = document.getElementById('modal-body');
-
             const reqsHtml = (grant.requirements || []).map(r => `<li class="ml-4 list-disc">${r}</li>`).join('');
             const expHtml = (grant.expenses || []).map(e => `<span class="inline-block bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded mr-1 mb-1">${e}</span>`).join('');
             const industries = grant.industries || ['全業種'];
-
-            // メール宛先と専門家情報の組み立て
             const email = state.expertInfo.email || 'consult@example.com';
             const expertName = state.expertInfo.name || '';
             const expertPhone = state.expertInfo.phone || '';
             let contactHtml = '';
-            if (expertName || expertPhone) {
-                contactHtml = `<div class="w-full text-center mt-3"><p class="text-xs text-gray-500 font-bold">お問い合わせ先: ${expertName} ${expertPhone ? `(TEL: ${expertPhone})` : ''}</p></div>`;
-            }
+            if (expertName || expertPhone) contactHtml = `<div class="w-full text-center mt-3"><p class="text-xs text-gray-500 font-bold">お問い合わせ先: ${expertName} ${expertPhone ? `(TEL: ${expertPhone})` : ''}</p></div>`;
 
             content.innerHTML = `
                 <div class="flex flex-wrap gap-2 mb-3">
@@ -1159,21 +1254,14 @@
                 </div>
                 <h2 class="text-2xl font-bold text-app-main mb-2">${grant.name || '名称未設定'}</h2>
                 <div class="flex gap-4 mb-6 text-sm">
-                    <div class="bg-blue-50 px-3 py-2 rounded border border-blue-100 flex-1">
-                        <span class="block text-xs text-blue-500 mb-1">補助上限額</span><span class="font-bold">${grant.maxAmountText || '-'}</span>
-                    </div>
-                    <div class="bg-blue-50 px-3 py-2 rounded border border-blue-100 flex-1">
-                        <span class="block text-xs text-blue-500 mb-1">補助率</span><span class="font-bold">${grant.rate || '-'}</span>
-                    </div>
+                    <div class="bg-blue-50 px-3 py-2 rounded border border-blue-100 flex-1"><span class="block text-xs text-blue-500 mb-1">補助上限額</span><span class="font-bold">${grant.maxAmountText || '-'}</span></div>
+                    <div class="bg-blue-50 px-3 py-2 rounded border border-blue-100 flex-1"><span class="block text-xs text-blue-500 mb-1">補助率</span><span class="font-bold">${grant.rate || '-'}</span></div>
                 </div>
                 <div class="space-y-5">
                     <div><h4 class="font-bold text-app-text border-b-2 border-app-accent pb-1 mb-2 inline-block">概要解説</h4><p class="text-sm text-gray-700 leading-relaxed">${grant.description || ''}</p></div>
                     <div><h4 class="font-bold text-app-text border-b-2 border-app-accent pb-1 mb-2 inline-block">主な対象要件</h4><ul class="text-sm text-gray-700 space-y-1">${reqsHtml}</ul></div>
                     <div><h4 class="font-bold text-app-text border-b-2 border-app-accent pb-1 mb-2 inline-block">対象経費の例</h4><div class="mt-1">${expHtml}</div></div>
-                    <div class="bg-orange-50 p-4 rounded-lg border border-orange-100 dark:bg-orange-900/20">
-                        <h4 class="font-bold text-orange-800 mb-1 flex items-center gap-1 dark:text-orange-400">注意点・落とし穴</h4>
-                        <p class="text-sm text-orange-700 dark:text-orange-300">${grant.pitfalls || '特になし'}</p>
-                    </div>
+                    <div class="bg-orange-50 p-4 rounded-lg border border-orange-100 dark:bg-orange-900/20"><h4 class="font-bold text-orange-800 mb-1 flex items-center gap-1 dark:text-orange-400">注意点・落とし穴</h4><p class="text-sm text-orange-700 dark:text-orange-300">${grant.pitfalls || '特になし'}</p></div>
                 </div>
                 <div class="mt-8 flex flex-col sm:flex-row gap-3">
                     <a href="${grant.url || '#'}" target="_blank" rel="noopener noreferrer" class="flex-1 bg-gray-100 text-gray-700 font-bold py-3 px-4 rounded text-center hover:bg-gray-200 transition-colors flex justify-center items-center gap-2">公式サイト（検索）</a>
@@ -1181,40 +1269,27 @@
                 </div>
                 ${contactHtml}
             `;
-
             modal.classList.remove('hidden');
-            setTimeout(() => {
-                modal.classList.remove('opacity-0');
-                document.getElementById('detail-modal-content').classList.remove('scale-95');
-            }, 10);
+            setTimeout(() => { modal.classList.remove('opacity-0'); document.getElementById('detail-modal-content').classList.remove('scale-95'); }, 10);
             document.body.style.overflow = 'hidden';
         }
 
         function openHelpModal() {
             const modal = document.getElementById('help-modal');
             modal.classList.remove('hidden');
-            setTimeout(() => {
-                modal.classList.remove('opacity-0');
-                modal.querySelector('div').classList.remove('scale-95');
-            }, 10);
+            setTimeout(() => { modal.classList.remove('opacity-0'); modal.querySelector('div').classList.remove('scale-95'); }, 10);
             document.body.style.overflow = 'hidden';
         }
 
         function openSettingsModal() {
             updateThemeButtons();
             const modal = document.getElementById('settings-modal');
-            
-            // 設定画面を開く際に、保存されている専門家情報をフォームにセットする
             document.getElementById('expert-name').value = state.expertInfo.name || '';
             document.getElementById('expert-email').value = state.expertInfo.email || '';
             document.getElementById('expert-phone').value = state.expertInfo.phone || '';
-
             modal.classList.remove('hidden');
-            document.getElementById('expert-message').classList.add('hidden'); // 開くたびにメッセージリセット
-            setTimeout(() => {
-                modal.classList.remove('opacity-0');
-                modal.querySelector('div').classList.remove('scale-95');
-            }, 10);
+            document.getElementById('expert-message').classList.add('hidden');
+            setTimeout(() => { modal.classList.remove('opacity-0'); modal.querySelector('div').classList.remove('scale-95'); }, 10);
             document.body.style.overflow = 'hidden';
         }
 
@@ -1223,16 +1298,11 @@
             state.expertInfo.email = document.getElementById('expert-email').value;
             state.expertInfo.phone = document.getElementById('expert-phone').value;
             saveState();
-            
             const msg = document.getElementById('expert-message');
             msg.textContent = '専門家情報を保存しました。';
             msg.className = 'text-xs mt-2 font-bold text-green-600';
             msg.classList.remove('hidden');
-            
-            // 3秒後にメッセージを隠す
-            setTimeout(() => {
-                msg.classList.add('hidden');
-            }, 3000);
+            setTimeout(() => { msg.classList.add('hidden'); }, 3000);
         }
 
         function closeModal(modalId) {
@@ -1240,36 +1310,21 @@
             modal.classList.add('opacity-0');
             const content = modal.querySelector('div');
             if(content) content.classList.add('scale-95');
-            
-            setTimeout(() => {
-                modal.classList.add('hidden');
-                document.body.style.overflow = '';
-            }, 300);
+            setTimeout(() => { modal.classList.add('hidden'); document.body.style.overflow = ''; }, 300);
         }
 
-        window.onclick = function(event) {
-            if (event.target.classList.contains('fixed')) {
-                closeModal(event.target.id);
-            }
-        }
+        window.onclick = function(event) { if (event.target.classList.contains('fixed')) closeModal(event.target.id); }
 
         // --- 8. Theme & Debug Logic ---
         function initTheme() {
             if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
                 document.documentElement.classList.add('dark');
-            } else {
-                document.documentElement.classList.remove('dark');
-            }
+            } else { document.documentElement.classList.remove('dark'); }
         }
 
         function setTheme(theme) {
-            if (theme === 'dark') {
-                document.documentElement.classList.add('dark');
-                localStorage.theme = 'dark';
-            } else {
-                document.documentElement.classList.remove('dark');
-                localStorage.theme = 'light';
-            }
+            if (theme === 'dark') { document.documentElement.classList.add('dark'); localStorage.theme = 'dark'; } 
+            else { document.documentElement.classList.remove('dark'); localStorage.theme = 'light'; }
             updateThemeButtons();
         }
 
@@ -1277,51 +1332,25 @@
             const isDark = document.documentElement.classList.contains('dark');
             const btnLight = document.getElementById('btn-theme-light');
             const btnDark = document.getElementById('btn-theme-dark');
-            
             if (isDark) {
-                btnDark.classList.add('bg-gray-200', 'border-gray-400', 'text-app-main');
-                btnDark.classList.remove('bg-gray-50');
-                btnLight.classList.remove('bg-gray-200', 'border-gray-400', 'text-app-main');
-                btnLight.classList.add('bg-gray-50');
+                btnDark.classList.add('bg-gray-200', 'border-gray-400', 'text-app-main'); btnDark.classList.remove('bg-gray-50');
+                btnLight.classList.remove('bg-gray-200', 'border-gray-400', 'text-app-main'); btnLight.classList.add('bg-gray-50');
             } else {
-                btnLight.classList.add('bg-gray-200', 'border-gray-400', 'text-app-main');
-                btnLight.classList.remove('bg-gray-50');
-                btnDark.classList.remove('bg-gray-200', 'border-gray-400', 'text-app-main');
-                btnDark.classList.add('bg-gray-50');
+                btnLight.classList.add('bg-gray-200', 'border-gray-400', 'text-app-main'); btnLight.classList.remove('bg-gray-50');
+                btnDark.classList.remove('bg-gray-200', 'border-gray-400', 'text-app-main'); btnDark.classList.add('bg-gray-50');
             }
         }
 
         function loadDemoData() {
-            state.answers = {
-                industry: 'IT・情報サービス',
-                employees: '6〜20人',
-                years: '3〜10年',
-                issues: ['ITシステムを導入したい', '販路を広げたい・新市場に挑戦したい', 'コスト削減・業務効率化をしたい'],
-                scale: '100〜500万円程度'
-            };
-            saveState();
-            closeModal('settings-modal');
-            showResults();
+            state.answers = { industry: 'IT・情報サービス', employees: '6〜20人', years: '3〜10年', issues: ['ITシステムを導入したい', 'コスト削減・業務効率化をしたい'], scale: '100〜500万円程度' };
+            saveState(); closeModal('settings-modal'); showResults();
         }
 
         function clearData() {
             if(confirm('すべての入力データ（使用回数や専門家情報を含む）をクリアしますか？')) {
-                state = {
-                    step: 1,
-                    usageCount: 0,
-                    isPremium: false,
-                    expertInfo: { name: '', email: '', phone: '' },
-                    answers: { industry: '', employees: '', years: '', issues: [], scale: '' },
-                    filters: { sort: 'match', diff: 'all', freq: 'all', amount: 0 },
-                    results: []
-                };
-                saveState();
-                renderStep1();
-                renderStep2();
-                renderStep3();
-                updateUIState();
-                updateTrialBanner();
-                closeModal('settings-modal');
+                state = { step: 1, usageCount: 0, isPremium: false, expertInfo: { name: '', email: '', phone: '' }, answers: { industry: '', employees: '', years: '', issues: [], scale: '' }, planAnswers: { strength: '', action: '', effect: '' }, filters: { sort: 'match', diff: 'all', freq: 'all', amount: 0 }, results: [], generatedPlan: '' };
+                saveState(); renderStep1(); renderStep2(); renderStep3(); updateUIState(); updateTrialBanner(); closeModal('settings-modal');
+                document.getElementById('input-strength').value = ''; document.getElementById('input-action').value = ''; document.getElementById('input-effect').value = '';
             }
         }
     </script>
